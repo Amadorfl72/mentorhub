@@ -1,5 +1,6 @@
 # Ignorar el archivo de configuración de entorno
 backend/.env
+frontend/.env
 
 # Node modules
 node_modules/
@@ -29,3 +30,4 @@ jspm_packages/
 .idea/
 .vscode/
 *.sublime-workspace
+client_secret_241708342168-dsvorv4a49u7gu1s6r2su41e56frk1hl.apps.googleusercontent.com.json
