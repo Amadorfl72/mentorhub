@@ -1,0 +1,18 @@
+{
+  "dashboard": {
+    "title": "Panel de Control",
+    "upcomingSessions": "Próximas Sesiones",
+    "viewAllSessions": "Ver Todas las Sesiones",
+    "userStats": "Estadísticas de Usuarios",
+    "totalUsers": "Usuarios Totales",
+    "mentors": "Mentores",
+    "profile": "Perfil"
+  },
+  "sessions": {
+    "title": "Sesiones",
+    "description": "Aquí puedes encontrar todas las sesiones."
+  },
+  "welcome": "Bienvenido a la Aplicación",
+  "loginPrompt": "Por favor, inicia sesión para continuar.",
+  "login": "Iniciar Sesión"
+}

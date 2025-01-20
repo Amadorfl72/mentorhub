@@ -1,2 +1,31 @@
 # Ignorar el archivo de configuración de entorno
 backend/.env
+
+# Node modules
+node_modules/
+
+# Build output
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+jspm_packages/
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Misc
+.DS_Store
+*.pem
+
+# Editor directories and files
+.idea/
+.vscode/
+*.sublime-workspace

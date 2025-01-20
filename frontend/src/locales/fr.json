@@ -1,0 +1,18 @@
+{
+  "dashboard": {
+    "title": "Tableau de Bord",
+    "upcomingSessions": "Sessions à Venir",
+    "viewAllSessions": "Voir Toutes les Sessions",
+    "userStats": "Statistiques des Utilisateurs",
+    "totalUsers": "Utilisateurs Totals",
+    "mentors": "Mentors",
+    "profile": "Profil"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "description": "Ici, vous pouvez trouver toutes les sessions."
+  },
+  "welcome": "Bienvenue dans l'Application",
+  "loginPrompt": "Veuillez vous connecter pour continuer.",
+  "login": "Se Connecter"
+}

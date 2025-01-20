@@ -1,0 +1,18 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "upcomingSessions": "Upcoming Sessions",
+    "viewAllSessions": "View All Sessions",
+    "userStats": "User Statistics",
+    "totalUsers": "Total Users",
+    "mentors": "Mentors",
+    "profile": "Profile"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "description": "Here you can find all the sessions."
+  },
+  "welcome": "Welcome to the Application",
+  "loginPrompt": "Please log in to continue.",
+  "login": "Log In"
+}
