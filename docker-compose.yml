@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:5001
-      - REACT_APP_GOOGLE_CLIENT_ID=241708342168-dsvorv4a49u7gu1s6r2su41e56frk1hl.apps.googleusercontent.com
+      - REACT_APP_GOOGLE_CLIENT_ID=241708342168-39j9don3nagb2cgdp74vngtb2s5be4pg.apps.googleusercontent.com
     volumes:
       - ./frontend:/app
       - /app/node_modules

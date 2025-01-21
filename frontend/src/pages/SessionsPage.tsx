@@ -8,9 +8,8 @@ const SessionsPage = () => {
     <div className="p-8 bg-white min-h-screen">
       <h1 className="text-3xl font-bold mb-6">{t('sessions.title')}</h1>
       <p className="text-gray-700">{t('sessions.description')}</p>
-      {/* Aquí iría la lógica para mostrar todas las sesiones */}
     </div>
   );
 };
 
-export default SessionsPage;
+export default SessionsPage; 

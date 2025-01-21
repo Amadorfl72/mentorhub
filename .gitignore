@@ -35,3 +35,4 @@ jspm_packages/
 *.apps.googleusercontent.com.json
 .env
 .env.*
+mentorhub_creds_google.json

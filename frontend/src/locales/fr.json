@@ -14,5 +14,13 @@
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
-  "login": "Se Connecter"
+  "login": "Se Connecter",
+  "app": {
+    "name": "MentorHub",
+    "slogan": "Connecter les esprits, construire l'avenir"
+  },
+  "login": {
+    "button": "Se connecter avec Google",
+    "welcome": "Bienvenue sur {{appName}}"
+  }
 }

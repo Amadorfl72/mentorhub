@@ -14,5 +14,13 @@
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Please log in to continue.",
-  "login": "Log In"
+  "login": "Log In",
+  "app": {
+    "name": "MentorHub",
+    "slogan": "Connecting minds, building futures"
+  },
+  "login": {
+    "button": "Sign in with Google",
+    "welcome": "Welcome to {{appName}}"
+  }
 }
