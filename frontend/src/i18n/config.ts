@@ -7,14 +7,18 @@ import es from '../locales/es.json';
 import fr from '../locales/fr.json';
 
 i18n
-  .use(LanguageDetector)
+  .use(LanguageDetector as any)  // temporal fix
   .use(initReactI18next)
   .init({
-    fallbackLng: 'en',
     resources: {
       en: { translation: en },
       es: { translation: es },
       fr: { translation: fr }
+    },
+    lng: 'en', // Idioma por defecto
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false
     }
   });
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const SessionsPage = () => {
-  const { t } = useTranslation();
+const SessionsPage: React.FC = () => {
+  const { t }: { t: (key: string) => string } = useTranslation();
 
   return (
     <div className="p-8 bg-white min-h-screen">
