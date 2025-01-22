@@ -2,7 +2,7 @@ import jwt
 import datetime
 from flask import request, jsonify
 from functools import wraps
-from backend.models.user import User
+from models.user import User
 import os
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'your_secret_key_here')

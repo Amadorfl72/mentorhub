@@ -1,11 +1,9 @@
 from flask import Flask, redirect, url_for, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from config.config import Config
+from config import Config
 from dotenv import load_dotenv
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_mail import Mail
 from flask_cors import CORS
+from extensions import db, migrate, mail
 import os
 
 # Cargar variables de entorno desde .env
@@ -14,23 +12,20 @@ load_dotenv()
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Configuración CORS actualizada
+# Configuración CORS simplificada
 CORS(app, 
-    resources={r"/*": {
-        "origins": [os.getenv('FRONTEND_URL', 'http://localhost:3000')],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }})
+     origins=[os.getenv('FRONTEND_URL', 'http://localhost:3000')],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True)
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', os.getenv('FRONTEND_URL', 'http://localhost:3000'))
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+# Inicializar extensiones
+db.init_app(app)
+migrate.init_app(app, db)
+mail.init_app(app)
+
+# Registrar blueprints
+from routes.auth_routes import auth_bp
+app.register_blueprint(auth_bp, url_prefix='/auth')
 
 # Configurar Flask-Dance para Google OAuth
 google_bp = make_google_blueprint(
@@ -50,10 +45,6 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
 # Obtener la lista de correos electrónicos de administradores desde el .env
 admin_emails = os.getenv("ADMIN_EMAILS", "").split(",")
-
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)  # Inicializar Flask-Migrate
-mail = Mail(app)  # Inicializar Flask-Mail
 
 @app.route("/")
 def index():

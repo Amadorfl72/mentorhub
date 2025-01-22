@@ -1,4 +1,4 @@
-from backend.app import db
+from extensions import db
 
 # Tabla intermedia para la relación muchos a muchos entre sesiones y mentees
 session_mentees = db.Table('session_mentees',
