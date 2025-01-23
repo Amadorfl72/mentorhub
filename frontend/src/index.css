@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 body {
+  @apply bg-gray-900 text-gray-100;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -14,4 +15,25 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Estilos personalizados para el tema oscuro */
+.dark-theme {
+  @apply bg-gray-900;
+}
+
+.dark-card {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark-input {
+  @apply bg-gray-700 border-gray-600 text-white placeholder-gray-400;
+}
+
+.dark-text {
+  @apply text-gray-100;
+}
+
+.dark-text-secondary {
+  @apply text-gray-400;
 }

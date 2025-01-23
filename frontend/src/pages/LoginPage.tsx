@@ -41,19 +41,19 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-white relative">
+    <div className="flex items-center justify-center min-h-screen bg-gray-900 relative">
       {/* Language Selector */}
       <div className="absolute top-4 right-4">
         <Dropdown
-          label={<HiTranslate className="w-5 h-5" />}
+          label={<HiTranslate className="w-5 h-5 text-gray-300" />}
           dismissOnClick={true}
-          className="bg-white"
+          className="bg-gray-800 border-gray-700"
         >
           {languages.map((lang) => (
             <Dropdown.Item
               key={lang.code}
               onClick={() => handleLanguageChange(lang.code)}
-              className={i18n.language === lang.code ? 'bg-gray-100' : ''}
+              className={`${i18n.language === lang.code ? 'bg-gray-700' : ''} text-gray-300 hover:bg-gray-700`}
             >
               {lang.name}
             </Dropdown.Item>
@@ -61,12 +61,12 @@ const LoginPage = () => {
         </Dropdown>
       </div>
 
-      <Card className="w-[600px] p-8 rounded-3xl shadow-lg">
+      <Card className="w-[600px] p-8 rounded-3xl shadow-xl bg-gray-800 border-gray-700">
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-white">
             {t('login.welcome', { appName: t('app.name') })}
           </h1>
-          <p className="text-gray-500 text-lg mb-8">
+          <p className="text-gray-400 text-lg mb-8">
             {t('app.slogan')}
           </p>
 

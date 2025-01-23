@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown } from 'flowbite-react';
+import { Avatar, Button, Dropdown, Card } from 'flowbite-react';
 import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,12 @@ const DashboardPage = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  
+  // Añadir estado para las estadísticas
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    mentors: 0
+  });
 
   useEffect(() => {
     // Verificar si el usuario necesita completar su perfil
@@ -36,59 +42,65 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Menú izquierdo */}
-            <button className="text-gray-500 hover:text-gray-700">
-              <HiMenuAlt1 className="h-6 w-6" />
-            </button>
+    <div className="min-h-screen bg-gray-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-white">
+            {t('dashboard.title')}
+          </h1>
+          <Button 
+            onClick={handleEditProfile}
+            gradientDuoTone="purpleToBlue"
+            className="hover:bg-blue-700"
+          >
+            {t('dashboard.profile')}
+          </Button>
+        </div>
 
-            {/* Saludo central */}
-            <div className="flex items-center gap-3">
-              <Avatar 
-                img={user?.photoUrl}
-                rounded
-                size="md"
-              />
-              <span className="text-lg font-semibold text-gray-900">
-                {t('dashboard.greeting', { name: user?.name })}
-              </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Upcoming Sessions Card */}
+          <Card className="bg-gray-800 border-gray-700">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">
+                {t('dashboard.upcomingSessions')}
+              </h2>
+              <Button 
+                size="sm"
+                gradientDuoTone="purpleToBlue"
+                className="hover:bg-blue-700"
+              >
+                {t('dashboard.viewAllSessions')}
+              </Button>
             </div>
+            {/* Contenido de sesiones */}
+          </Card>
 
-            {/* Menú de usuario */}
-            <Dropdown
-              label={<HiOutlineUser className="h-6 w-6" />}
-              arrowIcon={false}
-              inline
-            >
-              <Dropdown.Header>
-                <span className="block text-sm">{user?.name}</span>
-                <span className="block truncate text-sm font-medium">{user?.email}</span>
-              </Dropdown.Header>
-              <Dropdown.Item icon={HiOutlineCog} onClick={handleEditProfile}>
-                {t('common.edit_profile')}
-              </Dropdown.Item>
-              <Dropdown.Divider />
-              <Dropdown.Item icon={HiOutlineLogout} onClick={handleLogout}>
-                {t('common.logout')}
-              </Dropdown.Item>
-            </Dropdown>
-          </div>
+          {/* User Stats Card */}
+          <Card className="bg-gray-800 border-gray-700">
+            <h2 className="text-xl font-bold text-white mb-4">
+              {t('dashboard.userStats')}
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-gray-700 rounded-lg">
+                <div className="text-2xl font-bold text-blue-400">
+                  {stats.totalUsers}
+                </div>
+                <div className="text-gray-400">
+                  {t('dashboard.totalUsers')}
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-700 rounded-lg">
+                <div className="text-2xl font-bold text-green-400">
+                  {stats.mentors}
+                </div>
+                <div className="text-gray-400">
+                  {t('dashboard.mentors')}
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
-
-      {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {t('dashboard.welcome_message')}
-          </h2>
-          {/* Aquí irá el contenido del dashboard */}
-        </div>
-      </main>
     </div>
   );
 };
