@@ -13,14 +13,31 @@
     "description": "Here you can find all the sessions."
   },
   "welcome": "Welcome to the Application",
-  "loginPrompt": "Please log in to continue.",
-  "login": "Log In",
   "app": {
     "name": "MentorHub",
     "slogan": "Connecting minds, building futures"
   },
   "login": {
     "button": "Sign in with Google",
-    "welcome": "Welcome to {{appName}}"
+    "welcome": "Welcome to {{appName}}",
+    "prompt": "Please log in to continue."
+  },
+  "register": {
+    "title": "Complete Your Profile",
+    "edit_title": "Edit Profile",
+    "photo": "Profile Photo",
+    "name": "Full Name",
+    "email": "Email",
+    "biography": "Biography",
+    "biography_placeholder": "Tell us about yourself...",
+    "expertise": "Areas of Expertise",
+    "expertise_placeholder": "e.g., React, Python, Machine Learning",
+    "skills": "Skills",
+    "skills_placeholder": "Add your technical skills",
+    "interests": "Interests",
+    "interests_placeholder": "What topics interest you?",
+    "want_to_be_mentor": "I want to be a mentor",
+    "save": "Save Changes",
+    "complete": "Complete Registration"
   }
 }

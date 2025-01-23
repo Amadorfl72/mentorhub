@@ -11,41 +11,43 @@ const GoogleCallback: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
       
-      console.log('Received code:', code);
-      
       if (!code) {
         console.error('No code found in URL');
-        navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
 
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/google/callback?code=${code}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/auth/google/callback?code=${encodeURIComponent(code)}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json'
+            }
           }
-        });
+        );
 
-        console.log('Response status:', response.status);
-        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Response data:', data);
 
         if (data.token) {
           await login(data);
+          
+          // Limpiar la URL después de procesar el código
+          window.history.replaceState({}, document.title, window.location.pathname);
           
           if (data.isNewUser || data.user.role === 'pending') {
             navigate('/register', { 
               state: { 
                 isNewUser: true,
                 message: 'Please complete your profile information'
-              }
+              },
+              replace: true 
             });
           } else {
             navigate('/dashboard', { replace: true });
@@ -55,7 +57,7 @@ const GoogleCallback: React.FC = () => {
         }
       } catch (error) {
         console.error('Error during callback:', error);
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     };
 
