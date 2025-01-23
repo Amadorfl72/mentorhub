@@ -95,17 +95,13 @@ def update_profile():
         db.session.commit()
         
         return jsonify({
-            "message": "Profile updated successfully",
-            "user": {
-                "id": current_user.id,
-                "email": current_user.email,
-                "username": current_user.username,
-                "name": current_user.username,
-                "role": current_user.role,
-                "photoUrl": current_user.photoUrl,
-                "skills": current_user.skills,
-                "interests": current_user.interests
-            }
+            "id": current_user.id,
+            "email": current_user.email,
+            "name": current_user.username,
+            "photoUrl": current_user.photoUrl,
+            "role": current_user.role,
+            "skills": current_user.skills,
+            "interests": current_user.interests
         })
 
     except Exception as e:

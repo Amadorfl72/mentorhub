@@ -3,14 +3,19 @@
     "title": "Panel de Control",
     "upcomingSessions": "Próximas Sesiones",
     "viewAllSessions": "Ver Todas las Sesiones",
+    "quick_actions": "Acciones Rápidas",
     "userStats": "Estadísticas de Usuarios",
+    "stats":"Estadísticas",
     "totalUsers": "Usuarios Totales",
     "mentors": "Mentores",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "sessions": "Sesiones"
   },
   "sessions": {
     "title": "Sesiones",
-    "description": "Aquí puedes encontrar todas las sesiones."
+    "description": "Aquí puedes encontrar todas las sesiones.",
+    "new_session": "Nueva Sesión",
+    "create_session": "Crear Sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -40,5 +45,16 @@
     "want_to_be_mentor": "Quiero ser mentor",
     "save": "Guardar Cambios",
     "complete": "Completar Registro"
+  },
+  "profile": {
+    "view_edit": "Ver/Editar Perfil",
+    "changes_saved": "Cambios guardados correctamente"
+  },
+  "common": {
+    "logout": "Cerrar Sesión",
+    "back": "Volver",
+    "back_to_dashboard": "Volver al Dashboard",
+    "yes": "Sí",
+    "no": "No"
   }
 }
