@@ -14,5 +14,31 @@
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
-  "login": "Iniciar Sesión"
+  "login": {
+    "button": "Iniciar sesión con Google",
+    "welcome": "Bienvenido a {{appName}}",
+    "prompt": "Por favor, inicia sesión para continuar."
+  },
+  "app": {
+    "name": "MentorHub",
+    "slogan": "Conectando mentes, construyendo futuros"
+  },
+  "register": {
+    "title": "Completa tu Perfil",
+    "edit_title": "Editar Perfil",
+    "photo": "Foto de Perfil",
+    "name": "Nombre Completo",
+    "email": "Correo Electrónico",
+    "biography": "Biografía",
+    "biography_placeholder": "Cuéntanos sobre ti...",
+    "expertise": "Áreas de Experiencia",
+    "expertise_placeholder": "ej., React, Python, Machine Learning",
+    "skills": "Habilidades",
+    "skills_placeholder": "Añade tus habilidades técnicas",
+    "interests": "Intereses",
+    "interests_placeholder": "¿Qué temas te interesan?",
+    "want_to_be_mentor": "Quiero ser mentor",
+    "save": "Guardar Cambios",
+    "complete": "Completar Registro"
+  }
 }
