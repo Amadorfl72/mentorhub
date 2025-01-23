@@ -20,36 +20,38 @@ const GoogleCallback: React.FC = () => {
       }
 
       try {
-        const url = `${process.env.REACT_APP_API_URL}/auth/google/callback?code=${code}`;
-        console.log('Calling backend URL:', url);
-        
-        const response = await fetch(url, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/google/callback?code=${code}`, {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
           }
         });
-        
+
         console.log('Response status:', response.status);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Response data:', data);
-        
+
         if (data.token) {
           await login(data);
-          if (data.isNewUser) {
-            navigate('/register');
+          
+          if (data.isNewUser || data.user.role === 'pending') {
+            navigate('/register', { 
+              state: { 
+                isNewUser: true,
+                message: 'Please complete your profile information'
+              }
+            });
           } else {
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
           }
         } else {
-          console.error('No token in response:', data);
-          navigate('/login');
+          throw new Error('No token in response');
         }
       } catch (error) {
         console.error('Error during callback:', error);
@@ -58,7 +60,7 @@ const GoogleCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, []);
+  }, [navigate, login]);
 
   return (
     <div className="flex justify-center items-center h-screen">

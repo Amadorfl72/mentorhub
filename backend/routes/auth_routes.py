@@ -27,7 +27,6 @@ def login():
 @auth_bp.route('/google/callback')
 def google_callback():
     code = request.args.get('code')
-    print(f"Received code: {code}")  # Debug log
     
     if not code:
         return jsonify({'error': 'No authorization code provided'}), 400
@@ -36,11 +35,10 @@ def google_callback():
         # Intercambiar el código por token
         token_data = exchange_code_for_token(
             code, 
-            'http://localhost:3000/auth/callback'  # Debe coincidir con el frontend
+            'http://localhost:3000/auth/callback'
         )
         
         if 'error' in token_data:
-            print(f"Error in token exchange: {token_data}")  # Debug log
             return jsonify({'error': token_data['error']}), 401
 
         # Obtener información del usuario
@@ -56,9 +54,15 @@ def google_callback():
             user = User(
                 email=user_info['email'],
                 username=user_info['name'],
+                photoUrl=user_info['picture'],
                 role='pending'
             )
             db.session.add(user)
+            db.session.commit()
+
+        # Actualizar photoUrl si ha cambiado
+        elif user.photoUrl != user_info['picture']:
+            user.photoUrl = user_info['picture']
             db.session.commit()
 
         # Generar JWT
@@ -69,13 +73,14 @@ def google_callback():
             'user': {
                 'email': user.email,
                 'name': user.username,
-                'role': user.role
+                'role': user.role,
+                'photoUrl': user.photoUrl
             },
             'isNewUser': is_new_user
         })
 
     except Exception as e:
-        print(f"Error in callback: {str(e)}")  # Debug log
+        print(f"Error in callback: {str(e)}")
         return jsonify({'error': str(e)}), 401
 
 @auth_bp.route('/verify-token', methods=['POST'])

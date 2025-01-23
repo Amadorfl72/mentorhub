@@ -13,14 +13,12 @@ const LoginPage = () => {
   ];
 
   const handleGoogleLogin = () => {
-    console.log('Iniciando login con Google...'); // Debug log
     const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
     
     if (!clientId) {
       console.error('Google Client ID not found');
       return;
     }
-    console.log('Client ID encontrado:', clientId); // Debug log
 
     const params = {
       client_id: clientId,
@@ -28,14 +26,13 @@ const LoginPage = () => {
       response_type: 'code',
       scope: 'email profile openid',
       access_type: 'offline',
-      prompt: 'consent',
+      prompt: 'select_account',
+      include_granted_scopes: 'true'
     };
 
-    console.log('Parámetros de auth:', params); // Debug log
     const queryString = new URLSearchParams(params).toString();
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${queryString}`;
     
-    console.log('URL de autenticación:', authUrl); // Debug log
     window.location.href = authUrl;
   };
 
@@ -64,7 +61,7 @@ const LoginPage = () => {
         </Dropdown>
       </div>
 
-      <Card className="w-[450px] p-8 rounded-3xl shadow-lg">
+      <Card className="w-[600px] p-8 rounded-3xl shadow-lg">
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-bold text-gray-900">
             {t('login.welcome', { appName: t('app.name') })}
