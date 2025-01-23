@@ -3,14 +3,19 @@
     "title": "Dashboard",
     "upcomingSessions": "Upcoming Sessions",
     "viewAllSessions": "View All Sessions",
+    "quick_actions": "Quick Actions",
     "userStats": "User Statistics",
+    "stats":"Statistics",
     "totalUsers": "Total Users",
     "mentors": "Mentors",
-    "profile": "Profile"
+    "profile": "Profile",
+    "sessions": "Sessions"
   },
   "sessions": {
     "title": "Sessions",
-    "description": "Here you can find all the sessions."
+    "description": "Here you can find all the sessions.",
+    "new_session": "New Session",
+    "create_session": "Create Session"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -39,5 +44,11 @@
     "want_to_be_mentor": "I want to be a mentor",
     "save": "Save Changes",
     "complete": "Complete Registration"
+  },
+  "profile": {
+    "view_edit": "View/Edit Profile"
+  },
+  "common": {
+    "logout": "Logout"
   }
 }

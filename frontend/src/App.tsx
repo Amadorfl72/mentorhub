@@ -28,7 +28,7 @@ const App = () => {
             } 
           />
           <Route 
-            path="/register" 
+            path="/profile" 
             element={
               <PrivateRoute>
                 <RegisterPage />

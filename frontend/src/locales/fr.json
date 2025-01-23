@@ -3,14 +3,19 @@
     "title": "Tableau de Bord",
     "upcomingSessions": "Sessions à Venir",
     "viewAllSessions": "Voir Toutes les Sessions",
+    "quick_actions": "Actions Rapides",
     "userStats": "Statistiques des Utilisateurs",
+    "stats":"Statistiques",
     "totalUsers": "Utilisateurs Totals",
     "mentors": "Mentors",
-    "profile": "Profil"
+    "profile": "Profil",
+    "sessions": "Sessions"
   },
   "sessions": {
     "title": "Sessions",
-    "description": "Ici, vous pouvez trouver toutes les sessions."
+    "description": "Ici, vous pouvez trouver toutes les sessions.",
+    "new_session": "Nouvelle Session",
+    "create_session": "Créer une Session"
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
@@ -40,5 +45,11 @@
     "want_to_be_mentor": "Je veux être mentor",
     "save": "Enregistrer",
     "complete": "Terminer l'Inscription"
+  },
+  "profile": {
+    "view_edit": "Voir/Modifier Profil"
+  },
+  "common": {
+    "logout": "Déconnexion"
   }
 }

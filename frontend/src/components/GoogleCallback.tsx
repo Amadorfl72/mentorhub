@@ -17,43 +17,54 @@ const GoogleCallback = () => {
         }
 
         try {
-            console.log('Sending code to backend:', code);
+            console.log('Iniciando proceso de callback con código:', code.substring(0, 10) + '...');
+            
             const response = await fetch(`http://localhost:5001/auth/google/callback?code=${code}`, {
                 method: 'GET',
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
             });
 
-            console.log('Response status:', response.status);
+            console.log('Respuesta del servidor:', {
+                status: response.status,
+                statusText: response.statusText,
+            });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.log('Error details:', errorData);
+                console.error('Error detallado del servidor:', errorData);
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Response data:', data);
+            console.log('Datos recibidos:', {
+                hasToken: !!data.token,
+                hasUser: !!data.user,
+                userRole: data.user?.role
+            });
 
             if (data.token) {
-                login({ token: data.token, user: data.user });
-                // Si el usuario ya está registrado (tiene role distinto de 'pending')
+                login(data);
                 if (data.user.role && data.user.role !== 'pending') {
                     navigate('/dashboard');
                 } else {
-                    navigate('/register');
+                    navigate('/profile');
                 }
             }
         } catch (error) {
-            console.error('Error during callback:', error);
+            console.error('Error completo durante el callback:', error);
             navigate('/login');
         }
     }, [navigate, login]);
 
     useEffect(() => {
         handleCallback();
-    }, []); // Solo se ejecuta una vez al montar el componente
+    }, [handleCallback]);
 
-    return <div>Processing login...</div>;
+    return <div className="text-white">Procesando autenticación...</div>;
 };
 
 export default GoogleCallback; 

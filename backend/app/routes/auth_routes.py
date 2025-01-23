@@ -31,73 +31,69 @@ def login():
 
 @auth_bp.route('/auth/google/callback')
 def google_callback():
-    code = request.args.get('code')
-    logger.debug(f"Received code: {code}")
-    
-    if not code:
-        return jsonify({"error": "No authorization code provided"}), 400
-
     try:
-        token_response = exchange_code_for_token(code)
-        logger.debug(f"Token response: {token_response}")
-        
-        if not token_response:
+        code = request.args.get('code')
+        logger.debug(f"Received code: {code[:10]}...")  # Solo mostramos los primeros 10 caracteres por seguridad
+
+        if not code:
+            logger.error("No authorization code provided")
+            return jsonify({"error": "No authorization code provided"}), 400
+
+        # Obtener el token usando el código
+        logger.debug("Attempting to exchange code for token...")
+        token_info = exchange_code_for_token(code)
+        logger.debug(f"Token info received: {bool(token_info)}")
+
+        if not token_info:
+            logger.error("Failed to exchange code for token")
             return jsonify({"error": "Failed to exchange code for token", "details": "Check server logs"}), 400
 
-        user_info = get_google_user_info(token_response)
-        logger.debug(f"User info: {user_info}")
+        # Obtener información del usuario
+        logger.debug("Attempting to get user info...")
+        id_token = token_info.get('id_token')
+        logger.debug(f"ID token present: {bool(id_token)}")
         
+        user_info = get_google_user_info(id_token)
+        logger.debug(f"User info received: {bool(user_info)}")
+
         if not user_info:
-            return jsonify({"error": "Failed to get user info"}), 400
+            logger.error("Failed to get user info")
+            return jsonify({"error": "Failed to get user info", "details": "Invalid token"}), 400
 
-        email = user_info.get('email')
-        if not email:
-            return jsonify({"error": "No email found in user info"}), 400
-
-        try:
-            # Buscar usuario existente
-            user = User.query.filter_by(email=email).first()
-            
-            if user:
-                # Actualizar información del usuario existente
-                user.username = user_info.get('name', email.split('@')[0])
-                user.google_id = user_info.get('sub')
+        # Buscar o crear usuario
+        user = User.query.filter_by(email=user_info['email']).first()
+        if not user:
+            user = User(
+                email=user_info['email'],
+                username=user_info.get('name', ''),
+                photoUrl=user_info.get('picture'),
+                role='pending'
+            )
+            db.session.add(user)
+        else:
+            # Actualizar la foto del usuario existente si ha cambiado
+            if user.photoUrl != user_info.get('picture'):
                 user.photoUrl = user_info.get('picture')
-                db.session.commit()
-            else:
-                # Crear nuevo usuario
-                user = User(
-                    username=user_info.get('name', email.split('@')[0]),
-                    email=email,
-                    google_id=user_info.get('sub'),
-                    photoUrl=user_info.get('picture'),
-                    role='pending'
-                )
-                db.session.add(user)
-                db.session.commit()
 
-            # Generar token JWT
-            token = generate_token(user)
-            
-            return jsonify({
-                "token": token,
-                "user": {
-                    "id": user.id,
-                    "email": user.email,
-                    "name": user_info.get('name', ''),
-                    "role": user.role,
-                    "photoUrl": user.photoUrl
-                }
-            })
+        db.session.commit()
 
-        except Exception as db_error:
-            db.session.rollback()
-            logger.error(f"Database error: {str(db_error)}")
-            return jsonify({"error": "Database error", "details": str(db_error)}), 500
+        # Generar JWT
+        token = generate_token(user)
+
+        return jsonify({
+            "token": token,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user_info.get('name', ''),
+                "photoUrl": user_info.get('picture'),
+                "role": user.role
+            }
+        })
 
     except Exception as e:
-        logger.error(f"Exception in google_callback: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error in Google callback: {str(e)}")
+        return jsonify({"error": "Authentication failed", "details": str(e)}), 400
 
 @auth_bp.route('/verify-token', methods=['POST'])
 def verify_token():

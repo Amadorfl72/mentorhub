@@ -91,8 +91,8 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-6">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-900 py-8">
+      <div className="max-w-2xl mx-auto px-4">
         {isNewUser && message && (
           <Alert color="info" className="mb-6 bg-blue-900 text-blue-100">
             {message}
@@ -100,12 +100,13 @@ const RegisterPage = () => {
         )}
 
         <div className="bg-gray-800 shadow-xl rounded-lg p-6 border border-gray-700">
-          <div className="flex flex-col items-center mb-6">
-            <Avatar 
-              img={formData.photoUrl}
-              size="xl"
-              rounded
-              className="mb-2 ring-2 ring-gray-700"
+          <div className="flex flex-col items-center mb-8">
+            <img
+              src={user?.photoUrl}
+              alt="Profile"
+              className="w-24 h-24 rounded-full mb-4"
+              crossOrigin="anonymous"
+              referrerPolicy="no-referrer"
             />
             <span className="text-sm text-gray-400">
               {t('register.photo')}
