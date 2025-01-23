@@ -22,16 +22,42 @@ const RegisterPage = () => {
 
   const [isMentor, setIsMentor] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
     try {
-      await updateUser({
-        ...formData,
-        role: isMentor ? 'mentor' : 'mentee'
-      });
-      navigate('/dashboard', { replace: true });
+        const token = localStorage.getItem('token');
+        console.log("Token being sent:", token);
+        
+        const response = await fetch('http://localhost:5001/api/users/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                name: formData.name,
+                email: formData.email,
+                photoUrl: formData.photoUrl,
+                skills: formData.skills,
+                interests: formData.interests,
+                role: isMentor ? 'mentor' : 'mentee'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.log("Error details:", errorData);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Success:", data);
+        await updateUser(data);
+        navigate('/dashboard', { replace: true });
     } catch (error) {
-      console.error('Error updating profile:', error);
+        console.error("Error updating profile:", error);
     }
   };
 
