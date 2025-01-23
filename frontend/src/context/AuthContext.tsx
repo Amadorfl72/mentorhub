@@ -5,6 +5,8 @@ export interface User {
   email: string;
   role: string;
   photoUrl?: string;
+  skills?: string;
+  interests?: string;
 }
 
 interface AuthContextType {

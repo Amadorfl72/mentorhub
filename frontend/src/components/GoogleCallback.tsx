@@ -11,8 +11,8 @@ const GoogleCallback = () => {
         const code = urlParams.get('code');
 
         if (!code) {
-            console.error('No code found in URL');
-            navigate('/login');
+            console.debug('No code found in URL, redirecting to login');
+            navigate('/login', { replace: true });
             return;
         }
 
@@ -56,7 +56,7 @@ const GoogleCallback = () => {
             }
         } catch (error) {
             console.error('Error completo durante el callback:', error);
-            navigate('/login');
+            navigate('/login', { replace: true });
         }
     }, [navigate, login]);
 

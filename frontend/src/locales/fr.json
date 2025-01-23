@@ -47,9 +47,14 @@
     "complete": "Terminer l'Inscription"
   },
   "profile": {
-    "view_edit": "Voir/Modifier Profil"
+    "view_edit": "Voir/Modifier Profil",
+    "changes_saved": "Modifications enregistrées avec succès"
   },
   "common": {
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "back": "Retour",
+    "back_to_dashboard": "Retour au Dashboard",
+    "yes": "Oui",
+    "no": "Non"
   }
 }

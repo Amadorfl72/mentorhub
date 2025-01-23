@@ -24,22 +24,20 @@ def exchange_code_for_token(code):
         'grant_type': 'authorization_code'
     }
     
-    logger.debug(f"Exchange attempt with code: {code[:10]}...")
-    logger.debug(f"Using client_id: {GOOGLE_CLIENT_ID[:10]}...")
-    logger.debug(f"Using redirect_uri: {REDIRECT_URI}")
+    logger.info(f"Attempting token exchange with code: {code[:10]}...")
+    logger.info(f"Using redirect URI: {REDIRECT_URI}")
     
     try:
         response = requests.post(token_endpoint, data=data)
-        logger.debug(f"Token exchange response status: {response.status_code}")
-        logger.debug(f"Token exchange response: {response.text}")
+        logger.info(f"Token exchange response status: {response.status_code}")
         
         if response.status_code != 200:
-            logger.error(f"Token exchange failed with status {response.status_code}: {response.text}")
+            logger.error(f"Token exchange failed: {response.text}")
             return None
             
         return response.json()
     except Exception as e:
-        logger.error(f"Exception during token exchange: {str(e)}")
+        logger.exception("Exception during token exchange")
         return None
 
 def get_google_user_info(id_token):

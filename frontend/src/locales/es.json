@@ -47,9 +47,14 @@
     "complete": "Completar Registro"
   },
   "profile": {
-    "view_edit": "Ver/Editar Perfil"
+    "view_edit": "Ver/Editar Perfil",
+    "changes_saved": "Cambios guardados correctamente"
   },
   "common": {
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "back": "Volver",
+    "back_to_dashboard": "Volver al Dashboard",
+    "yes": "Sí",
+    "no": "No"
   }
 }

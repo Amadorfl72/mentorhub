@@ -46,9 +46,14 @@
     "complete": "Complete Registration"
   },
   "profile": {
-    "view_edit": "View/Edit Profile"
+    "view_edit": "View/Edit Profile",
+    "changes_saved": "Changes saved successfully"
   },
   "common": {
-    "logout": "Logout"
+    "logout": "Logout",
+    "back": "Back",
+    "back_to_dashboard": "Back to Dashboard",
+    "yes": "Yes",
+    "no": "No"
   }
 }

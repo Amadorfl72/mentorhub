@@ -33,32 +33,41 @@ def login():
 def google_callback():
     try:
         code = request.args.get('code')
-        logger.debug(f"Received code: {code[:10]}...")  # Solo mostramos los primeros 10 caracteres por seguridad
+        logger.info(f"Received auth code: {code[:10]}...")
 
         if not code:
             logger.error("No authorization code provided")
             return jsonify({"error": "No authorization code provided"}), 400
 
         # Obtener el token usando el código
-        logger.debug("Attempting to exchange code for token...")
         token_info = exchange_code_for_token(code)
-        logger.debug(f"Token info received: {bool(token_info)}")
-
-        if not token_info:
-            logger.error("Failed to exchange code for token")
-            return jsonify({"error": "Failed to exchange code for token", "details": "Check server logs"}), 400
-
-        # Obtener información del usuario
-        logger.debug("Attempting to get user info...")
-        id_token = token_info.get('id_token')
-        logger.debug(f"ID token present: {bool(id_token)}")
         
-        user_info = get_google_user_info(id_token)
-        logger.debug(f"User info received: {bool(user_info)}")
+        if not token_info:
+            logger.error("Failed to exchange code for token - token_info is None")
+            return jsonify({
+                "error": "Failed to exchange code for token",
+                "details": "Token exchange failed"
+            }), 400
 
+        # Log del token_info (sin mostrar datos sensibles)
+        logger.info(f"Token info received: {bool(token_info)}")
+        logger.info(f"Token info keys: {token_info.keys() if token_info else None}")
+
+        id_token = token_info.get('id_token')
+        if not id_token:
+            logger.error("No id_token in token_info")
+            return jsonify({
+                "error": "Invalid token response",
+                "details": "No id_token present"
+            }), 400
+
+        user_info = get_google_user_info(id_token)
         if not user_info:
-            logger.error("Failed to get user info")
-            return jsonify({"error": "Failed to get user info", "details": "Invalid token"}), 400
+            logger.error("Failed to get user info from token")
+            return jsonify({
+                "error": "Failed to get user info",
+                "details": "Could not verify token"
+            }), 400
 
         # Buscar o crear usuario
         user = User.query.filter_by(email=user_info['email']).first()
@@ -87,13 +96,18 @@ def google_callback():
                 "email": user.email,
                 "name": user_info.get('name', ''),
                 "photoUrl": user_info.get('picture'),
-                "role": user.role
+                "role": user.role,
+                "skills": user.skills,
+                "interests": user.interests
             }
         })
 
     except Exception as e:
-        logger.error(f"Error in Google callback: {str(e)}")
-        return jsonify({"error": "Authentication failed", "details": str(e)}), 400
+        logger.exception("Error in Google callback")
+        return jsonify({
+            "error": "Authentication failed",
+            "details": str(e)
+        }), 400
 
 @auth_bp.route('/verify-token', methods=['POST'])
 def verify_token():
