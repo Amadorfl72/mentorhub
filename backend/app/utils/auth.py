@@ -46,33 +46,34 @@ def login_required(f):
             # Extraer el token del header 'Bearer <token>'
             token = auth_header.split(' ')[1]
             
+            # Imprimir información sobre el token para depuración
+            logger.info(f"Token recibido en login_required: {token[:20]}...")
+            
             # Verificar y decodificar el token
-            payload = jwt.decode(
-                token,
-                os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
-                algorithms=['HS256']
-            )
-            
-            # Verificar si el token ha expirado
-            exp = payload.get('exp')
-            if exp and datetime.utcnow().timestamp() > exp:
-                logger.error("Token has expired")
-                return jsonify({"error": "Token has expired"}), 401
-            
-            # Añadir el ID del usuario al request
-            request.user_id = payload.get('user_id')
-            
-            return f(*args, **kwargs)
-            
-        except jwt.ExpiredSignatureError:
-            logger.error("Token has expired")
-            return jsonify({"error": "Token has expired"}), 401
-        except jwt.InvalidTokenError as e:
-            logger.error(f"Invalid token: {str(e)}")
-            return jsonify({"error": "Invalid token"}), 401
+            try:
+                payload = jwt.decode(
+                    token,
+                    os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
+                    algorithms=['HS256']
+                )
+                
+                # Verificar si el token ha expirado
+                exp = payload.get('exp')
+                if exp and datetime.utcnow().timestamp() > exp:
+                    logger.error("Token has expired")
+                    return jsonify({"error": "Token has expired"}), 401
+                
+                # Añadir el ID del usuario al request
+                request.user_id = payload.get('user_id')
+                
+                return f(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Error decodificando token: {str(e)}")
+                return jsonify({"error": "Invalid token", "details": str(e)}), 401
+                
         except Exception as e:
-            logger.error(f"Error processing token: {str(e)}")
-            return jsonify({"error": "Invalid or expired token"}), 401
+            logger.error(f"Error general en login_required: {str(e)}")
+            return jsonify({"error": "Invalid or expired token", "details": str(e)}), 401
             
     return decorated_function
 
