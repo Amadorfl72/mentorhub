@@ -9,13 +9,15 @@ import {
   HiCheck, 
   HiX, 
   HiExclamation,
-  HiOutlineFilter
+  HiOutlineFilter,
+  HiArrowLeft
 } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 import CachedImage from '../components/CachedImage';
+import { getMentorsInfo, MentorInfo } from '../services/userService';
 
 interface NotificationState {
   show: boolean;
@@ -48,7 +50,7 @@ const AllSessionsPage = () => {
   });
   
   // Estado para almacenar información de mentores
-  const [mentors, setMentors] = useState<Record<number, any>>({});
+  const [mentors, setMentors] = useState<Record<number, MentorInfo>>({});
   
   // Estado para el modal de confirmación de borrado
   const [deleteModal, setDeleteModal] = useState<{
@@ -87,22 +89,70 @@ const AllSessionsPage = () => {
         
         setSessions(sortedSessions);
         
-        // Crear un objeto con información básica de mentores
-        const mentorsInfo: Record<number, any> = {};
+        // Obtener IDs de mentores únicos
+        const mentorIds = sortedSessions
+          .map(session => session.mentor_id)
+          .filter((id): id is number => id !== undefined);
         
-        // Procesar cada sesión y crear información básica del mentor
-        sortedSessions.forEach(session => {
-          if (session.mentor_id && !mentorsInfo[session.mentor_id]) {
-            mentorsInfo[session.mentor_id] = {
-              id: session.mentor_id,
-              name: `Mentor ${session.mentor_id}`,
-              photoUrl: '',
-              role: 'mentor'
-            };
+        // Cargar información de mentores
+        if (mentorIds.length > 0) {
+          try {
+            // Usar un objeto para almacenar la información de los mentores
+            const mentorsData: Record<number, MentorInfo> = {};
+            
+            // Obtener información del usuario actual
+            const currentUserStr = localStorage.getItem('user');
+            if (currentUserStr) {
+              const currentUser = JSON.parse(currentUserStr);
+              
+              // Para cada ID de mentor
+              for (const mentorId of mentorIds) {
+                // Si el usuario actual es el mentor
+                if (currentUser.id === mentorId) {
+                  mentorsData[mentorId] = {
+                    id: mentorId,
+                    name: currentUser.name || currentUser.username || `Mentor ${mentorId}`,
+                    email: currentUser.email,
+                    photoUrl: currentUser.photoUrl,
+                    photoBlob: currentUser.photoBlob,
+                    role: currentUser.role
+                  };
+                } else {
+                  // Si no es el usuario actual, usar información genérica
+                  mentorsData[mentorId] = {
+                    id: mentorId,
+                    name: `Mentor ${mentorId}`,
+                    photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
+                  };
+                }
+              }
+            } else {
+              // Si no hay usuario actual, usar información genérica para todos los mentores
+              for (const mentorId of mentorIds) {
+                mentorsData[mentorId] = {
+                  id: mentorId,
+                  name: `Mentor ${mentorId}`,
+                  photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
+                };
+              }
+            }
+            
+            setMentors(mentorsData);
+          } catch (error) {
+            console.error('Error loading mentors info:', error);
+            
+            // En caso de error, crear información genérica para todos los mentores
+            const fallbackMentorsData: Record<number, MentorInfo> = {};
+            for (const mentorId of mentorIds) {
+              fallbackMentorsData[mentorId] = {
+                id: mentorId,
+                name: `Mentor ${mentorId}`,
+                photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
+              };
+            }
+            setMentors(fallbackMentorsData);
           }
-        });
-        
-        setMentors(mentorsInfo);
+        }
       } catch (error) {
         console.error('Error al cargar las sesiones:', error);
         showNotification(t('sessions.load_error'), 'error');
@@ -116,7 +166,7 @@ const AllSessionsPage = () => {
 
   // Filtrar las sesiones cuando cambia el estado de showPastSessions, searchTerm o sessions
   useEffect(() => {
-    let filtered = sessions;
+    let filtered = [...sessions]; // Crear una copia para no modificar el original
     
     // Filtrar por sesiones pasadas si es necesario
     if (!showPastSessions) {
@@ -139,6 +189,13 @@ const AllSessionsPage = () => {
         );
       });
     }
+    
+    // Asegurar que las sesiones filtradas mantengan el orden cronológico
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.scheduled_time).getTime();
+      const dateB = new Date(b.scheduled_time).getTime();
+      return dateA - dateB;
+    });
     
     setFilteredSessions(filtered);
   }, [showPastSessions, searchTerm, sessions, mentors]);
@@ -278,11 +335,12 @@ const AllSessionsPage = () => {
             
             {/* Botón para volver al dashboard */}
             <Button 
-              color="gray" 
+              color="dark"
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
-              {t('common.back')}
+              <HiArrowLeft className="w-4 h-4" />
+              {t('common.back_to_dashboard')}
             </Button>
           </div>
         </div>
@@ -357,20 +415,47 @@ const AllSessionsPage = () => {
                   {/* Fila inferior con información del mentor y botones */}
                   <div className="mt-2 flex justify-between items-center">
                     {/* Información del mentor */}
-                    <div className="flex items-center space-x-2">
-                      {mentorInfo?.photoUrl ? (
-                        <CachedImage 
-                          src={mentorInfo.photoUrl}
-                          alt={mentorInfo.name || 'Mentor'}
-                          className="w-6 h-6 rounded-full"
-                          fallbackSrc="/assets/default-avatar.png"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs text-white">
-                          {mentorInfo?.name?.charAt(0) || 'M'}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium">{mentorInfo?.name || 'Unknown Mentor'}</span>
+                    <div className="flex items-center mt-3 mb-4">
+                      <div className="flex-shrink-0">
+                        {mentorInfo && (
+                          mentorInfo.photoBlob ? (
+                            <img 
+                              src={mentorInfo.photoBlob} 
+                              alt={mentorInfo.name}
+                              className="w-8 h-8 rounded-full"
+                              onError={(e) => {
+                                // Si falla la carga de la imagen, usar una imagen de fallback
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Evitar bucle infinito
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`;
+                              }}
+                            />
+                          ) : mentorInfo.photoUrl ? (
+                            <img 
+                              src={mentorInfo.photoUrl} 
+                              alt={mentorInfo.name}
+                              className="w-8 h-8 rounded-full"
+                              onError={(e) => {
+                                // Si falla la carga de la imagen, usar una imagen de fallback
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Evitar bucle infinito
+                                target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                              <span className="text-xs font-medium text-white">
+                                {mentorInfo.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-300">
+                          {mentorInfo ? mentorInfo.name : t('sessions.unknown_mentor')}
+                        </p>
+                      </div>
                     </div>
                     
                     {/* Botones de acción */}
