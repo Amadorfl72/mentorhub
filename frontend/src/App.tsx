@@ -8,6 +8,7 @@ import SessionsPage from './pages/SessionsPage';
 import { AuthProvider } from './context/AuthContext';
 import GoogleCallback from './components/GoogleCallback';
 import PrivateRoute from './components/PrivateRoute';
+import SessionPage from './pages/SessionPage';
 
 const App = () => {
   return (
@@ -35,6 +36,10 @@ const App = () => {
               </PrivateRoute>
             } 
           />
+          
+          {/* Rutas de sesiones */}
+          <Route path="/session/new" element={<SessionPage />} />
+          <Route path="/session/:id" element={<SessionPage />} />
           
           {/* Redirección por defecto */}
           <Route path="/" element={<Navigate to="/login" />} />

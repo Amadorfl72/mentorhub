@@ -121,3 +121,53 @@ def verify_token():
         return jsonify({'valid': True})
     except:
         return jsonify({'error': 'Invalid token'}), 401
+
+@auth_bp.route('/auth/debug-token', methods=['GET'])
+def debug_token():
+    auth_header = request.headers.get('Authorization')
+    
+    if not auth_header:
+        return jsonify({"error": "No Authorization header"}), 401
+    
+    try:
+        # Extraer el token del header 'Bearer <token>'
+        token = auth_header.split(' ')[1]
+        
+        # Imprimir información sobre el token para depuración
+        logger.info(f"Token recibido: {token[:20]}...")
+        
+        # Intentar decodificar con ambas claves
+        try:
+            payload_jwt_key = jwt.decode(
+                token,
+                os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
+                algorithms=['HS256']
+            )
+            logger.info(f"Decodificación exitosa con JWT_SECRET_KEY: {payload_jwt_key}")
+        except Exception as e:
+            logger.error(f"Error decodificando con JWT_SECRET_KEY: {str(e)}")
+            payload_jwt_key = None
+            
+        try:
+            payload_secret_key = jwt.decode(
+                token,
+                SECRET_KEY,
+                algorithms=['HS256']
+            )
+            logger.info(f"Decodificación exitosa con SECRET_KEY: {payload_secret_key}")
+        except Exception as e:
+            logger.error(f"Error decodificando con SECRET_KEY: {str(e)}")
+            payload_secret_key = None
+            
+        return jsonify({
+            "token_info": {
+                "decoded_with_jwt_key": payload_jwt_key is not None,
+                "decoded_with_secret_key": payload_secret_key is not None,
+                "payload_jwt_key": payload_jwt_key,
+                "payload_secret_key": payload_secret_key
+            }
+        })
+            
+    except Exception as e:
+        logger.error(f"Error general procesando token: {str(e)}")
+        return jsonify({"error": "Error processing token", "details": str(e)}), 400

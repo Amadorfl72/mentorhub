@@ -15,7 +15,26 @@
     "title": "Sesiones",
     "description": "Aquí puedes encontrar todas las sesiones.",
     "new_session": "Nueva Sesión",
-    "create_session": "Crear Sesión"
+    "create_session": "Crear Sesión",
+    "mySessions": "Mis Sesiones",
+    "show_more": "... mostrar más",
+    "edit_session": "Editar Sesión",
+    "title_label": "Título",
+    "description_label": "Descripción",
+    "date_time": "Fecha y hora",
+    "max_attendees": "Máximo de asistentes",
+    "keywords": "Palabras clave",
+    "keywords_placeholder": "Añade palabras clave y presiona Enter",
+    "delete_success": "Sesión eliminada correctamente",
+    "delete_error": "Error al eliminar la sesión",
+    "past": "Pasada",
+    "load_error": "Error al cargar las sesiones",
+    "past_sessions": "Sesiones Pasadas",
+    "past_sessions_description": "Aquí puedes encontrar todas las sesiones pasadas.",
+    "show_past": "Mostrar sesiones pasadas",
+    "no_sessions": "No tienes sesiones programadas.",
+    "no_upcoming_sessions": "No tienes sesiones próximas programadas.",
+    "create_first_session": "Crear tu primera sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -55,6 +74,12 @@
     "back": "Volver",
     "back_to_dashboard": "Volver al Dashboard",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "edit": "Editar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "delete_confirmation": "¿Estás seguro de querer eliminar esta sesión?"
   }
 }
