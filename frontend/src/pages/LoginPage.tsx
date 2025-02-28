@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Dropdown } from 'flowbite-react';
 import { useTranslation } from 'react-i18next';
 import { HiTranslate } from 'react-icons/hi';
+import ThemeSwitch from '../components/ThemeSwitch';
 
 const LoginPage = () => {
   const { t, i18n } = useTranslation();
@@ -42,8 +43,9 @@ const LoginPage = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 relative">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4">
+      {/* Theme and Language Selectors */}
+      <div className="absolute top-4 right-4 flex items-center space-x-4">
+        <ThemeSwitch />
         <Dropdown
           label={<HiTranslate className="w-5 h-5 text-gray-300" />}
           dismissOnClick={true}

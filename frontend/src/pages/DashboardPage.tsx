@@ -18,6 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
+import ThemeSwitch from '../components/ThemeSwitch';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
@@ -382,6 +383,7 @@ const DashboardPage = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeSwitch />
               <LanguageSelector />
               <UserMenu />
             </div>
