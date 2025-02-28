@@ -30,7 +30,11 @@
     "past": "Past",
     "load_error": "Error loading sessions",
     "past_sessions": "Past Sessions",
-    "past_sessions_description": "Here you can find all the past sessions."
+    "past_sessions_description": "Here you can find all the past sessions.",
+    "show_past": "Show past sessions",
+    "no_sessions": "You don't have any scheduled sessions.",
+    "no_upcoming_sessions": "You don't have any upcoming scheduled sessions.",
+    "create_first_session": "Create your first session"
   },
   "welcome": "Welcome to the Application",
   "app": {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown, Card, Toast, Modal } from 'flowbite-react';
+import { Avatar, Button, Dropdown, Card, Toast, Modal, Label } from 'flowbite-react';
 import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList, HiCheck, HiX, HiExclamation } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
@@ -34,7 +34,9 @@ const DashboardPage = () => {
   });
 
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
   const [notification, setNotification] = useState<NotificationState>({ 
     show: false, 
     message: '', 
@@ -114,6 +116,15 @@ const DashboardPage = () => {
     loadSessions();
   }, [t]);
 
+  // Filtrar las sesiones cuando cambia el estado de showPastSessions o sessions
+  useEffect(() => {
+    if (showPastSessions) {
+      setFilteredSessions(sessions);
+    } else {
+      setFilteredSessions(sessions.filter(session => !isSessionPast(session.scheduled_time)));
+    }
+  }, [showPastSessions, sessions]);
+
   const handleLogout = () => {
     logout();
   };
@@ -180,6 +191,11 @@ const DashboardPage = () => {
     const sessionDate = new Date(scheduledTime).getTime();
     const now = new Date().getTime();
     return sessionDate < now;
+  };
+
+  // Función para manejar el cambio en el switch de mostrar sesiones pasadas
+  const handleTogglePastSessions = (value: boolean) => {
+    setShowPastSessions(value);
   };
 
   // Si el usuario es 'pending', no renderizar el dashboard
@@ -275,23 +291,49 @@ const DashboardPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{t('sessions.mySessions')}</h2>
-          <Button 
-            color="blue" 
-            onClick={() => navigate('/session/new')}
-            className="flex items-center gap-2"
-          >
-            <HiPlus className="h-5 w-5" />
-            {t('sessions.new_session')}
-          </Button>
+          <div className="flex items-center gap-4">
+            {/* Switch para mostrar sesiones pasadas */}
+            <div className="flex items-center">
+              <Label className="mr-3 text-sm font-medium text-gray-300">
+                {t('sessions.show_past')}
+              </Label>
+              <div className="inline-flex rounded-lg border border-gray-600">
+                <button
+                  type="button"
+                  className={`px-3 py-1 text-sm rounded-l-lg ${showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                  onClick={() => handleTogglePastSessions(true)}
+                >
+                  {t('common.yes')}
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-1 text-sm rounded-r-lg ${!showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                  onClick={() => handleTogglePastSessions(false)}
+                >
+                  {t('common.no')}
+                </button>
+              </div>
+            </div>
+            
+            {/* Botón para crear nueva sesión */}
+            <Button 
+              color="blue" 
+              onClick={() => navigate('/session/new')}
+              className="flex items-center gap-2"
+            >
+              <HiPlus className="h-5 w-5" />
+              {t('sessions.new_session')}
+            </Button>
+          </div>
         </div>
         
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-        ) : sessions.length > 0 ? (
+        ) : filteredSessions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map(session => {
+            {filteredSessions.map(session => {
               const isPast = isSessionPast(session.scheduled_time);
               
               return (
@@ -363,13 +405,17 @@ const DashboardPage = () => {
           </div>
         ) : (
           <div className="bg-gray-800 rounded-lg p-6 text-center">
-            <p className="text-gray-400">No tienes sesiones programadas.</p>
+            <p className="text-gray-400">
+              {showPastSessions 
+                ? t('sessions.no_sessions') 
+                : t('sessions.no_upcoming_sessions')}
+            </p>
             <Button 
               color="blue" 
               onClick={() => navigate('/session/new')}
               className="mt-4"
             >
-              Crear tu primera sesión
+              {t('sessions.create_first_session')}
             </Button>
           </div>
         )}

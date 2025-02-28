@@ -30,7 +30,11 @@
     "past": "Passé",
     "load_error": "Erreur lors du chargement des sessions",
     "past_sessions": "Sessions Passées",
-    "past_sessions_description": "Ici, vous pouvez trouver toutes les sessions passées."
+    "past_sessions_description": "Ici, vous pouvez trouver toutes les sessions passées.",
+    "show_past": "Afficher les sessions passées",
+    "no_sessions": "Vous n'avez pas de sessions programmées.",
+    "no_upcoming_sessions": "Vous n'avez pas de sessions à venir programmées.",
+    "create_first_session": "Créer votre première session"
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
