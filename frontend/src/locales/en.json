@@ -26,7 +26,11 @@
     "keywords": "Keywords",
     "keywords_placeholder": "Add keywords and press Enter",
     "delete_success": "Session deleted successfully",
-    "delete_error": "Error deleting session"
+    "delete_error": "Error deleting session",
+    "past": "Past",
+    "load_error": "Error loading sessions",
+    "past_sessions": "Past Sessions",
+    "past_sessions_description": "Here you can find all the past sessions."
   },
   "welcome": "Welcome to the Application",
   "app": {

@@ -94,17 +94,25 @@ const DashboardPage = () => {
       setLoading(true);
       try {
         const userSessions = await getMentorSessions();
-        setSessions(userSessions);
+        
+        // Ordenar las sesiones por fecha (las más próximas primero)
+        const sortedSessions = userSessions.sort((a, b) => {
+          const dateA = new Date(a.scheduled_time).getTime();
+          const dateB = new Date(b.scheduled_time).getTime();
+          return dateA - dateB;
+        });
+        
+        setSessions(sortedSessions);
       } catch (error) {
         console.error('Error al cargar las sesiones:', error);
-        showNotification('Error al cargar las sesiones', 'error');
+        showNotification(t('sessions.load_error'), 'error');
       } finally {
         setLoading(false);
       }
     };
     
     loadSessions();
-  }, []);
+  }, [t]);
 
   const handleLogout = () => {
     logout();
@@ -145,8 +153,16 @@ const DashboardPage = () => {
     try {
       await deleteSession(deleteModal.sessionId);
       
-      // Actualizar la lista de sesiones
-      setSessions(sessions.filter(session => session.id !== deleteModal.sessionId));
+      // Actualizar la lista de sesiones manteniendo el orden
+      const updatedSessions = sessions
+        .filter(session => session.id !== deleteModal.sessionId)
+        .sort((a, b) => {
+          const dateA = new Date(a.scheduled_time).getTime();
+          const dateB = new Date(b.scheduled_time).getTime();
+          return dateA - dateB;
+        });
+      
+      setSessions(updatedSessions);
       
       // Mostrar notificación de éxito
       showNotification(t('sessions.delete_success'), 'success');
@@ -157,6 +173,13 @@ const DashboardPage = () => {
       setLoading(false);
       cancelDelete();
     }
+  };
+
+  // Función para verificar si una sesión ya ha pasado
+  const isSessionPast = (scheduledTime: string): boolean => {
+    const sessionDate = new Date(scheduledTime).getTime();
+    const now = new Date().getTime();
+    return sessionDate < now;
   };
 
   // Si el usuario es 'pending', no renderizar el dashboard
@@ -268,61 +291,75 @@ const DashboardPage = () => {
           </div>
         ) : sessions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map(session => (
-              <div key={session.id} className="bg-gray-800 rounded-lg p-4 shadow h-full flex flex-col">
-                <h3 className="text-xl font-semibold mb-2">{session.title}</h3>
-                <div className="mb-3 flex-grow">
-                  <p className="text-gray-300">
-                    {truncateDescription(session.description)}
-                    {session.description.length > 100 && (
-                      <button 
-                        onClick={() => navigate(`/session/${session.id}`)}
-                        className="text-blue-400 hover:text-blue-300 ml-1 focus:outline-none"
-                      >
-                        {t('sessions.show_more')}
-                      </button>
-                    )}
-                  </p>
-                </div>
-                
-                {/* Keywords como etiquetas */}
-                {session.keywords && session.keywords.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {session.keywords.split(',').filter(Boolean).map(keyword => (
-                      <span 
-                        key={keyword.trim()} 
-                        className="bg-purple-900 text-purple-100 px-2 py-0.5 text-xs rounded-full"
-                      >
-                        {keyword.trim()}
+            {sessions.map(session => {
+              const isPast = isSessionPast(session.scheduled_time);
+              
+              return (
+                <div 
+                  key={session.id} 
+                  className={`bg-gray-800 rounded-lg p-4 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
+                >
+                  <h3 className="text-xl font-semibold mb-2">
+                    {session.title}
+                    {isPast && (
+                      <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                        {t('sessions.past')}
                       </span>
-                    ))}
+                    )}
+                  </h3>
+                  <div className="mb-3 flex-grow">
+                    <p className="text-gray-300">
+                      {truncateDescription(session.description)}
+                      {session.description.length > 100 && (
+                        <button 
+                          onClick={() => navigate(`/session/${session.id}`)}
+                          className="text-blue-400 hover:text-blue-300 ml-1 focus:outline-none"
+                        >
+                          {t('sessions.show_more')}
+                        </button>
+                      )}
+                    </p>
                   </div>
-                )}
-                
-                <div className="flex justify-between text-sm text-gray-400 mt-auto">
-                  <span>
-                    {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
-                  </span>
-                  <span>Max: {session.max_attendees}</span>
+                  
+                  {/* Keywords como etiquetas */}
+                  {session.keywords && session.keywords.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {session.keywords.split(',').filter(Boolean).map(keyword => (
+                        <span 
+                          key={keyword.trim()} 
+                          className="bg-purple-900 text-purple-100 px-2 py-0.5 text-xs rounded-full"
+                        >
+                          {keyword.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between text-sm text-gray-400 mt-auto">
+                    <span>
+                      {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
+                    </span>
+                    <span>Max: {session.max_attendees}</span>
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button 
+                      size="xs" 
+                      color="light"
+                      onClick={() => navigate(`/session/${session.id}`)}
+                    >
+                      {t('common.edit')}
+                    </Button>
+                    <Button 
+                      size="xs" 
+                      color="failure"
+                      onClick={() => confirmDelete(session.id!)}
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  </div>
                 </div>
-                <div className="mt-4 flex justify-end gap-2">
-                  <Button 
-                    size="xs" 
-                    color="light"
-                    onClick={() => navigate(`/session/${session.id}`)}
-                  >
-                    {t('common.edit')}
-                  </Button>
-                  <Button 
-                    size="xs" 
-                    color="failure"
-                    onClick={() => confirmDelete(session.id!)}
-                  >
-                    {t('common.delete')}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-gray-800 rounded-lg p-6 text-center">

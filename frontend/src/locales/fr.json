@@ -26,7 +26,11 @@
     "keywords": "Mots clés",
     "keywords_placeholder": "Ajoutez des mots clés et appuyez sur Entrée",
     "delete_success": "Session supprimée avec succès",
-    "delete_error": "Erreur lors de la suppression de la session"
+    "delete_error": "Erreur lors de la suppression de la session",
+    "past": "Passé",
+    "load_error": "Erreur lors du chargement des sessions",
+    "past_sessions": "Sessions Passées",
+    "past_sessions_description": "Ici, vous pouvez trouver toutes les sessions passées."
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",

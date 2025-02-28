@@ -26,7 +26,11 @@
     "keywords": "Palabras clave",
     "keywords_placeholder": "Añade palabras clave y presiona Enter",
     "delete_success": "Sesión eliminada correctamente",
-    "delete_error": "Error al eliminar la sesión"
+    "delete_error": "Error al eliminar la sesión",
+    "past": "Pasada",
+    "load_error": "Error al cargar las sesiones",
+    "past_sessions": "Sesiones Pasadas",
+    "past_sessions_description": "Aquí puedes encontrar todas las sesiones pasadas."
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
