@@ -7,11 +7,21 @@ import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
+import { fetchData } from '../services/apiService';
 
 interface NotificationState {
   show: boolean;
   message: string;
   type: 'success' | 'error';
+}
+
+// Interface for mentor information
+interface MentorInfo {
+  id: number;
+  name: string;
+  email: string;
+  photoUrl?: string;
+  role: string;
 }
 
 // Añadir esta función para truncar la descripción
@@ -43,6 +53,9 @@ const DashboardPage = () => {
     type: 'success' 
   });
   
+  // Estado para almacenar información de mentores
+  const [mentors, setMentors] = useState<Record<number, MentorInfo>>({});
+  
   // Nuevo estado para el modal de confirmación de borrado
   const [deleteModal, setDeleteModal] = useState<{
     show: boolean;
@@ -51,6 +64,37 @@ const DashboardPage = () => {
     show: false,
     sessionId: null
   });
+
+  // Función para obtener información básica del usuario
+  const getUserInfo = async (userId: number): Promise<MentorInfo | null> => {
+    try {
+      // Intentar obtener la información del usuario desde el backend
+      const response = await fetch(`http://localhost:5001/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const userData = await response.json();
+      
+      return {
+        id: userData.id,
+        name: userData.username || userData.name,
+        email: userData.email,
+        photoUrl: userData.photoUrl,
+        role: userData.role
+      };
+    } catch (error) {
+      console.error(`Error fetching user info for ID ${userId}:`, error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     // Verificar si el usuario necesita completar su perfil
@@ -341,6 +385,7 @@ const DashboardPage = () => {
                   key={session.id} 
                   className={`bg-gray-800 rounded-lg p-4 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
                 >
+                  {/* Título de la sesión */}
                   <h3 className="text-xl font-semibold mb-2">
                     {session.title}
                     {isPast && (
@@ -349,6 +394,7 @@ const DashboardPage = () => {
                       </span>
                     )}
                   </h3>
+                  
                   <div className="mb-3 flex-grow">
                     <p className="text-gray-300">
                       {truncateDescription(session.description)}
@@ -383,21 +429,37 @@ const DashboardPage = () => {
                     </span>
                     <span>Max: {session.max_attendees}</span>
                   </div>
-                  <div className="mt-4 flex justify-end gap-2">
-                    <Button 
-                      size="xs" 
-                      color="light"
-                      onClick={() => navigate(`/session/${session.id}`)}
-                    >
-                      {t('common.edit')}
-                    </Button>
-                    <Button 
-                      size="xs" 
-                      color="failure"
-                      onClick={() => confirmDelete(session.id!)}
-                    >
-                      {t('common.delete')}
-                    </Button>
+                  
+                  {/* Fila inferior con información del mentor y botones */}
+                  <div className="mt-4 flex justify-between items-center">
+                    {/* Información del mentor */}
+                    <div className="flex items-center space-x-2">
+                      <Avatar 
+                        img={user?.photoUrl || "https://via.placeholder.com/40"} 
+                        rounded 
+                        size="xs"
+                        alt={user?.name}
+                      />
+                      <span className="text-sm font-medium">{user?.name}</span>
+                    </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="flex gap-2">
+                      <Button 
+                        size="xs" 
+                        color="light"
+                        onClick={() => navigate(`/session/${session.id}`)}
+                      >
+                        {t('common.edit')}
+                      </Button>
+                      <Button 
+                        size="xs" 
+                        color="failure"
+                        onClick={() => confirmDelete(session.id!)}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );

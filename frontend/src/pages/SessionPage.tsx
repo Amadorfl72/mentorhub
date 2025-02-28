@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Label, TextInput, Textarea, Select, Modal } from 'flowbite-react';
+import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createSession, getSession, updateSession, deleteSession, Session } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
+import { fetchData } from '../services/apiService';
 
 interface SessionFormData {
   title: string;
@@ -11,6 +12,14 @@ interface SessionFormData {
   scheduled_time: string;
   max_attendees: number;
   keywords: string;
+}
+
+interface MentorInfo {
+  id: number;
+  name: string;
+  email: string;
+  photoUrl?: string;
+  role: string;
 }
 
 const SessionPage: React.FC = () => {
@@ -30,6 +39,27 @@ const SessionPage: React.FC = () => {
   
   // Estado para el modal de confirmación de borrado
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  
+  // Estado para la información del mentor
+  const [mentorInfo, setMentorInfo] = useState<MentorInfo | null>(null);
+  const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
+
+  // Función para obtener información del usuario por ID
+  const getUserById = async (userId: number): Promise<MentorInfo | null> => {
+    try {
+      const userData = await fetchData(`users/${userId}`);
+      return {
+        id: userData.id,
+        name: userData.username || userData.name,
+        email: userData.email,
+        photoUrl: userData.photoUrl,
+        role: userData.role
+      };
+    } catch (error) {
+      console.error('Error al obtener información del usuario:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -45,6 +75,14 @@ const SessionPage: React.FC = () => {
               max_attendees: session.max_attendees,
               keywords: session.keywords || '',
             });
+            
+            // Obtener información del mentor
+            if (session.mentor_id) {
+              setLoadingMentor(true);
+              const mentor = await getUserById(session.mentor_id);
+              setMentorInfo(mentor);
+              setLoadingMentor(false);
+            }
           }
         } catch (error) {
           console.error('Error al cargar la sesión:', error);
@@ -206,6 +244,29 @@ const SessionPage: React.FC = () => {
           <h1 className="text-2xl font-bold">
             {isEditMode ? t('sessions.edit_session') : t('sessions.create_session')}
           </h1>
+          
+          {/* Información del mentor (solo en modo edición) */}
+          {isEditMode && mentorInfo && (
+            <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <p className="text-sm text-gray-400">{t('sessions.mentor')}</p>
+                <p className="font-medium">{mentorInfo.name}</p>
+              </div>
+              <Avatar 
+                img={mentorInfo.photoUrl || "https://via.placeholder.com/40"} 
+                rounded 
+                size="md"
+                alt={mentorInfo.name}
+              />
+            </div>
+          )}
+          
+          {isEditMode && loadingMentor && (
+            <div className="flex items-center space-x-2">
+              <div className="animate-pulse h-10 w-24 bg-gray-700 rounded"></div>
+              <div className="animate-pulse h-10 w-10 bg-gray-700 rounded-full"></div>
+            </div>
+          )}
         </div>
       </header>
       
