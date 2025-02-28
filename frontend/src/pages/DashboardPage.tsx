@@ -53,7 +53,9 @@ const DashboardPage = () => {
   // Añadir estado para las estadísticas
   const [stats, setStats] = useState({
     totalUsers: 0,
-    mentors: 0
+    totalMentors: 0,
+    totalMentees: 0,
+    totalSessions: 0
   });
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -138,7 +140,14 @@ const DashboardPage = () => {
         }
 
         const data = await response.json();
-        setStats(data);
+        
+        // Mapear los nombres de las propiedades del backend a los nombres que usa el frontend
+        setStats({
+          totalUsers: data.total_users || 0,
+          totalMentors: data.total_mentors || 0,
+          totalMentees: data.total_mentees || 0,
+          totalSessions: data.total_sessions || 0
+        });
       } catch (error) {
         console.error('Error fetching stats:', error);
       }
@@ -319,9 +328,7 @@ const DashboardPage = () => {
 
           {/* User Stats Card */}
           <Card className="bg-gray-800 border-gray-700">
-            <h2 className="text-xl font-bold text-white mb-4">
-              {t('dashboard.userStats')}
-            </h2>
+            {/* Primera fila: Total de usuarios y Total de sesiones */}
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-gray-700 rounded-lg">
                 <div className="text-2xl font-bold text-blue-400">
@@ -332,11 +339,31 @@ const DashboardPage = () => {
                 </div>
               </div>
               <div className="text-center p-4 bg-gray-700 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-400">
+                  {stats.totalSessions}
+                </div>
+                <div className="text-gray-400">
+                  {t('dashboard.totalSessions')}
+                </div>
+              </div>
+            </div>
+            
+            {/* Segunda fila: Mentores y Mentees */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="text-center p-4 bg-gray-700 rounded-lg">
                 <div className="text-2xl font-bold text-green-400">
-                  {stats.mentors}
+                  {stats.totalMentors}
                 </div>
                 <div className="text-gray-400">
                   {t('dashboard.mentors')}
+                </div>
+              </div>
+              <div className="text-center p-4 bg-gray-700 rounded-lg">
+                <div className="text-2xl font-bold text-purple-400">
+                  {stats.totalMentees}
+                </div>
+                <div className="text-gray-400">
+                  {t('dashboard.mentees')}
                 </div>
               </div>
             </div>
