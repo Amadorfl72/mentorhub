@@ -266,7 +266,7 @@ const DashboardPage = () => {
                   >
                     {t('common.edit')}
                   </Button>
-                  <Button size="xs" color="failure">{t('common.cancel')}</Button>
+                  <Button size="xs" color="failure">{t('common.delete')}</Button>
                 </div>
               </div>
             ))}

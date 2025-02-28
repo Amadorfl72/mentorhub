@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Label, TextInput, Textarea, Select } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createSession, getSession, updateSession, Session } from '../services/sessionService';
-import { HiX } from 'react-icons/hi';
+import { HiX, HiArrowLeft } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 
 interface SessionFormData {
@@ -177,9 +177,6 @@ const SessionPage: React.FC = () => {
           <h1 className="text-2xl font-bold">
             {isEditMode ? t('sessions.edit_session') : t('sessions.create_session')}
           </h1>
-          <Button color="gray" onClick={() => navigate('/dashboard')}>
-            {t('common.back_to_dashboard')}
-          </Button>
         </div>
       </header>
       
@@ -265,9 +262,13 @@ const SessionPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex justify-end gap-4 mt-8">
-                <Button color="gray" onClick={() => navigate('/dashboard')}>
-                  {t('common.cancel')}
+              <div className="flex justify-between items-center mt-8">
+                <Button
+                  color="blue"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <HiArrowLeft className="mr-2 h-5 w-5" />
+                  {t('common.back_to_dashboard')}
                 </Button>
                 <Button color="blue" type="submit" disabled={loading}>
                   {loading ? t('common.saving') : t('common.save')}
