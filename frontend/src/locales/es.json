@@ -6,13 +6,13 @@
     "quick_actions": "Acciones Rápidas",
     "userStats": "Estadísticas de Usuarios",
     "stats":"Estadísticas",
-    "totalUsers": "Usuarios Totales",
+    "totalUsers": "Usuarios",
     "mentors": "Mentores",
     "profile": "Perfil",
     "sessions": "Sesiones",
-    "totalSessions": "Sesiones Totales",
-    "totalMentees": "Mentees Totales",
-    "totalMentors": "Mentores Totales"
+    "totalSessions": "Sesiones",
+    "totalMentees": "Mentees",
+    "totalMentors": "Mentores"
   },
   "sessions": {
     "title": "Sesiones",

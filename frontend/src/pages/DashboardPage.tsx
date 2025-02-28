@@ -328,41 +328,48 @@ const DashboardPage = () => {
 
           {/* User Stats Card */}
           <Card className="bg-gray-800 border-gray-700">
-            {/* Primera fila: Total de usuarios y Total de sesiones */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-blue-400">
+            <h2 className="text-xl font-bold text-white mb-3">
+              {t('dashboard.userStats')}
+            </h2>
+            
+            {/* Una sola fila con 4 columnas para todas las estadísticas */}
+            <div className="grid grid-cols-4 gap-2">
+              {/* Total de usuarios */}
+              <div className="text-center p-3 bg-gray-700 rounded-lg">
+                <div className="text-xl font-bold text-blue-400">
                   {stats.totalUsers}
                 </div>
-                <div className="text-gray-400">
+                <div className="text-xs text-gray-400">
                   {t('dashboard.totalUsers')}
                 </div>
               </div>
-              <div className="text-center p-4 bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-400">
+              
+              {/* Total de sesiones */}
+              <div className="text-center p-3 bg-gray-700 rounded-lg">
+                <div className="text-xl font-bold text-yellow-400">
                   {stats.totalSessions}
                 </div>
-                <div className="text-gray-400">
+                <div className="text-xs text-gray-400">
                   {t('dashboard.totalSessions')}
                 </div>
               </div>
-            </div>
-            
-            {/* Segunda fila: Mentores y Mentees */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="text-center p-4 bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-green-400">
+              
+              {/* Mentores */}
+              <div className="text-center p-3 bg-gray-700 rounded-lg">
+                <div className="text-xl font-bold text-green-400">
                   {stats.totalMentors}
                 </div>
-                <div className="text-gray-400">
+                <div className="text-xs text-gray-400">
                   {t('dashboard.mentors')}
                 </div>
               </div>
-              <div className="text-center p-4 bg-gray-700 rounded-lg">
-                <div className="text-2xl font-bold text-purple-400">
+              
+              {/* Mentees */}
+              <div className="text-center p-3 bg-gray-700 rounded-lg">
+                <div className="text-xl font-bold text-purple-400">
                   {stats.totalMentees}
                 </div>
-                <div className="text-gray-400">
+                <div className="text-xs text-gray-400">
                   {t('dashboard.mentees')}
                 </div>
               </div>
