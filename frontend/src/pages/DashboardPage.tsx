@@ -299,13 +299,13 @@ const DashboardPage = () => {
               {(user?.role === 'mentor' || user?.role === 'both') && (
                 <Button
                   color="blue"
-                  onClick={() => navigate('/sessions/new')}
+                  onClick={() => navigate('/session/new')}
                 >
                   <HiPlus className="mr-2 h-5 w-5" />
                   {t('sessions.new_session')}
                 </Button>
               )}
-               <Button 
+              <Button 
                 size="sm"
                 gradientDuoTone="purpleToBlue"
                 className="hover:bg-blue-700"
@@ -398,16 +398,6 @@ const DashboardPage = () => {
                 </button>
               </div>
             </div>
-            
-            {/* Botón para crear nueva sesión */}
-            <Button 
-              color="blue" 
-              onClick={() => navigate('/session/new')}
-              className="flex items-center gap-2"
-            >
-              <HiPlus className="h-5 w-5" />
-              {t('sessions.new_session')}
-            </Button>
           </div>
         </div>
         
