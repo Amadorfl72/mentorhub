@@ -80,6 +80,9 @@ const DashboardPage = () => {
     sessionId: null
   });
 
+  // Añadir un nuevo estado para las próximas sesiones
+  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
+
   // Función para obtener información básica del usuario
   const getUserInfo = async (userId: number): Promise<MentorInfo | null> => {
     try {
@@ -156,7 +159,7 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // Cargar las sesiones al montar el componente
+  // Modificar el useEffect que carga las sesiones para también establecer las próximas sesiones
   useEffect(() => {
     const loadSessions = async () => {
       setLoading(true);
@@ -171,6 +174,14 @@ const DashboardPage = () => {
         });
         
         setSessions(sortedSessions);
+        
+        // Filtrar las sesiones no vencidas y tomar las 3 más próximas
+        const now = new Date().getTime();
+        const upcoming = sortedSessions
+          .filter(session => new Date(session.scheduled_time).getTime() > now)
+          .slice(0, 3);
+        
+        setUpcomingSessions(upcoming);
       } catch (error) {
         console.error('Error al cargar las sesiones:', error);
         showNotification(t('sessions.load_error'), 'error');
@@ -264,6 +275,19 @@ const DashboardPage = () => {
     setShowPastSessions(value);
   };
 
+  // Función para formatear la fecha y hora de manera más compacta
+  const formatDateTime = (dateTimeString: string): string => {
+    const date = new Date(dateTimeString);
+    // Formato más compacto: DD/MM HH:MM
+    return date.toLocaleDateString(undefined, { 
+      day: '2-digit', 
+      month: '2-digit' 
+    }) + ' ' + date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   // Si el usuario es 'pending', no renderizar el dashboard
   if (user?.role === 'pending') {
     return null;
@@ -289,22 +313,25 @@ const DashboardPage = () => {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Primer Card */}
-          <Card className="bg-gray-800">
-            <h5 className="text-xl font-bold tracking-tight text-white">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
+          {/* Primer Card - Quick Actions (más estrecho) */}
+          <Card className="bg-gray-800 lg:col-span-3">
+            <h5 className="text-lg font-bold tracking-tight text-white mb-2">
               {t('dashboard.quick_actions')}
             </h5>
-            <div className="flex flex-col space-y-3">
+            <div className="flex flex-col space-y-2">
               {(user?.role === 'mentor' || user?.role === 'both') && (
                 <Button
                   color="blue"
+                  size="sm"
                   onClick={() => navigate('/session/new')}
                 >
-                  <HiPlus className="mr-2 h-5 w-5" />
+                  <HiPlus className="mr-2 h-4 w-4" />
                   {t('sessions.new_session')}
                 </Button>
               )}
+              
+              {/* Volver a añadir el botón "Ver todas las sesiones" */}
               <Button 
                 size="sm"
                 gradientDuoTone="purpleToBlue"
@@ -315,19 +342,40 @@ const DashboardPage = () => {
             </div>
           </Card>
 
-          {/* Upcoming Sessions Card */}
-          <Card className="bg-gray-800 border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">
-                {t('dashboard.upcomingSessions')}
-              </h2>
-              
-            </div>
-            {/* Contenido de sesiones */}
+          {/* Upcoming Sessions Card (más ancho) */}
+          <Card className="bg-gray-800 border-gray-700 lg:col-span-5">
+            <h2 className="text-lg font-bold text-white mb-2">
+              {t('dashboard.upcomingSessions')}
+            </h2>
+            
+            {/* Lista de próximas sesiones (más compacta) */}
+            {upcomingSessions.length > 0 ? (
+              <div className="space-y-2">
+                {upcomingSessions.map(session => (
+                  <div 
+                    key={session.id}
+                    onClick={() => navigate(`/session/${session.id}`)}
+                    className="flex items-center py-1.5 px-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                  >
+                    {/* Alinear fecha y título a la izquierda */}
+                    <div className="text-xs text-blue-400 whitespace-nowrap mr-2">
+                      {formatDateTime(session.scheduled_time)}
+                    </div>
+                    <div className="font-medium text-sm text-white truncate">
+                      {session.title}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-1.5 text-gray-400 text-xs">
+                {t('sessions.no_upcoming_sessions')}
+              </div>
+            )}
           </Card>
 
           {/* User Stats Card */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800 border-gray-700 lg:col-span-4">
             <h2 className="text-xl font-bold text-white mb-3">
               {t('dashboard.userStats')}
             </h2>
