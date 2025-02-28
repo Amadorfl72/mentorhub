@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown, Card, Toast, Modal, Label } from 'flowbite-react';
+import { Avatar, Button, Dropdown, Card, Toast, Modal, Label, Pagination } from 'flowbite-react';
 import { 
   HiMenuAlt1, 
   HiOutlineLogout, 
@@ -82,6 +82,10 @@ const DashboardPage = () => {
 
   // Añadir un nuevo estado para las próximas sesiones
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
+
+  // Añadir estos estados para manejar la paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; // Limitado a 6 registros por página
 
   // Función para obtener información básica del usuario
   const getUserInfo = async (userId: number): Promise<MentorInfo | null> => {
@@ -202,6 +206,37 @@ const DashboardPage = () => {
     }
   }, [showPastSessions, sessions]);
 
+  // Función para obtener las sesiones de la página actual
+  const getCurrentPageSessions = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredSessions.slice(startIndex, endIndex);
+  };
+
+  // Función para manejar el cambio de página
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Modificar el useEffect que filtra las sesiones para incluir la paginación
+  useEffect(() => {
+    let filtered = [...sessions];
+    
+    // Filtrar por sesiones pasadas si es necesario
+    if (!showPastSessions) {
+      filtered = filtered.filter(session => {
+        const sessionDate = new Date(session.scheduled_time);
+        const now = new Date();
+        return sessionDate >= now;
+      });
+    }
+    
+    setFilteredSessions(filtered);
+    
+    // Resetear a la primera página cuando cambian los filtros
+    setCurrentPage(1);
+  }, [showPastSessions, sessions]);
+
   const handleLogout = () => {
     logout();
   };
@@ -286,6 +321,48 @@ const DashboardPage = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  // Componente de paginación personalizado para tema oscuro
+  const CustomPagination = ({ currentPage, totalPages }: { currentPage: number, totalPages: number }) => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <div className="flex justify-center my-4">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          showIcons={true}
+          layout="pagination"
+          theme={{
+            base: "",
+            layout: {
+              table: {
+                base: "text-sm text-gray-300"
+              }
+            },
+            pages: {
+              base: "xs:mt-0 mt-2 inline-flex items-center -space-x-px",
+              showIcon: "inline-flex",
+              previous: {
+                base: "ml-0 rounded-l-lg border border-gray-700 bg-gray-800 py-2 px-3 leading-tight text-gray-400 hover:bg-gray-700 hover:text-white",
+                icon: "h-5 w-5"
+              },
+              next: {
+                base: "rounded-r-lg border border-gray-700 bg-gray-800 py-2 px-3 leading-tight text-gray-400 hover:bg-gray-700 hover:text-white",
+                icon: "h-5 w-5"
+              },
+              selector: {
+                base: "w-12 border border-gray-700 bg-gray-800 py-2 leading-tight text-gray-400 hover:bg-gray-700 hover:text-white",
+                active: "bg-gray-700 text-white hover:bg-gray-600 hover:text-white",
+                disabled: "opacity-50 cursor-not-allowed"
+              }
+            }
+          }}
+        />
+      </div>
+    );
   };
 
   // Si el usuario es 'pending', no renderizar el dashboard
@@ -457,106 +534,138 @@ const DashboardPage = () => {
           </div>
         </div>
         
+        {/* Paginación superior */}
+        {filteredSessions.length > 0 && (
+          <div className="mb-4">
+            <CustomPagination 
+              currentPage={currentPage} 
+              totalPages={Math.ceil(filteredSessions.length / itemsPerPage)} 
+            />
+          </div>
+        )}
+        
+        {/* Contador de resultados */}
+        <div className="mb-4 text-sm text-gray-400">
+          {filteredSessions.length > 0 
+            ? t('sessions.showing_results', { 
+                from: (currentPage - 1) * itemsPerPage + 1, 
+                to: Math.min(currentPage * itemsPerPage, filteredSessions.length), 
+                total: filteredSessions.length 
+              })
+            : t('sessions.no_results')
+          }
+        </div>
+        
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : filteredSessions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSessions.map(session => {
-              const isPast = isSessionPast(session.scheduled_time);
-              
-              return (
-                <div 
-                  key={session.id} 
-                  className={`bg-gray-800 rounded-lg p-5 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
-                >
-                  {/* Título de la sesión */}
-                  <h3 className="text-xl font-semibold mb-3">
-                    {session.title}
-                    {isPast && (
-                      <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                        {t('sessions.past')}
-                      </span>
-                    )}
-                  </h3>
-                  
-                  <div className="mb-4 flex-grow">
-                    <p className="text-gray-300">
-                      {truncateDescription(session.description)}
-                      {session.description.length > 100 && (
-                        <button 
-                          onClick={() => navigate(`/session/${session.id}`)}
-                          className="text-blue-400 hover:text-blue-300 ml-1 focus:outline-none"
-                        >
-                          {t('sessions.show_more')}
-                        </button>
-                      )}
-                    </p>
-                  </div>
-                  
-                  {/* Keywords como etiquetas */}
-                  {session.keywords && session.keywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-5">
-                      {session.keywords.split(',').filter(Boolean).map(keyword => (
-                        <span 
-                          key={keyword.trim()} 
-                          className="bg-purple-900 text-purple-100 px-2.5 py-1 text-xs rounded-full"
-                        >
-                          {keyword.trim()}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {getCurrentPageSessions().map(session => {
+                const isPast = isSessionPast(session.scheduled_time);
+                
+                return (
+                  <div 
+                    key={session.id} 
+                    className={`bg-gray-800 rounded-lg p-5 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
+                  >
+                    {/* Título de la sesión */}
+                    <h3 className="text-xl font-semibold mb-3">
+                      {session.title}
+                      {isPast && (
+                        <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                          {t('sessions.past')}
                         </span>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between text-sm text-gray-400 mt-auto mb-4 py-1 border-t border-b border-gray-700">
-                    <div className="flex items-center">
-                      <HiCalendar className="mr-1.5 h-4 w-4 text-blue-400" />
-                      <span>
-                        {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
-                      <span>Max: {session.max_attendees}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Fila inferior con información del mentor y botones */}
-                  <div className="mt-2 flex justify-between items-center">
-                    {/* Información del mentor */}
-                    <div className="flex items-center space-x-2">
-                      <CachedImage 
-                        src={user?.photoUrl || ''}
-                        alt={user?.name || 'Mentor'}
-                        className="w-6 h-6 rounded-full"
-                        fallbackSrc="https://via.placeholder.com/40"
-                      />
-                      <span className="text-sm font-medium">{user?.name}</span>
+                      )}
+                    </h3>
+                    
+                    <div className="mb-4 flex-grow">
+                      <p className="text-gray-300">
+                        {truncateDescription(session.description)}
+                        {session.description.length > 100 && (
+                          <button 
+                            onClick={() => navigate(`/session/${session.id}`)}
+                            className="text-blue-400 hover:text-blue-300 ml-1 focus:outline-none"
+                          >
+                            {t('sessions.show_more')}
+                          </button>
+                        )}
+                      </p>
                     </div>
                     
-                    {/* Botones de acción */}
-                    <div className="flex gap-2">
-                      <Button 
-                        size="xs" 
-                        color="light"
-                        onClick={() => navigate(`/session/${session.id}`)}
-                      >
-                        {t('common.edit')}
-                      </Button>
-                      <Button 
-                        size="xs" 
-                        color="failure"
-                        onClick={() => confirmDelete(session.id!)}
-                      >
-                        {t('common.delete')}
-                      </Button>
+                    {/* Keywords como etiquetas */}
+                    {session.keywords && session.keywords.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-5">
+                        {session.keywords.split(',').filter(Boolean).map(keyword => (
+                          <span 
+                            key={keyword.trim()} 
+                            className="bg-purple-900 text-purple-100 px-2.5 py-1 text-xs rounded-full"
+                          >
+                            {keyword.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between text-sm text-gray-400 mt-auto mb-4 py-1 border-t border-b border-gray-700">
+                      <div className="flex items-center">
+                        <HiCalendar className="mr-1.5 h-4 w-4 text-blue-400" />
+                        <span>
+                          {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
+                        <span>Max: {session.max_attendees}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Fila inferior con información del mentor y botones */}
+                    <div className="mt-2 flex justify-between items-center">
+                      {/* Información del mentor */}
+                      <div className="flex items-center space-x-2">
+                        <CachedImage 
+                          src={user?.photoUrl || ''}
+                          alt={user?.name || 'Mentor'}
+                          className="w-6 h-6 rounded-full"
+                          fallbackSrc="https://via.placeholder.com/40"
+                        />
+                        <span className="text-sm font-medium">{user?.name}</span>
+                      </div>
+                      
+                      {/* Botones de acción */}
+                      <div className="flex gap-2">
+                        <Button 
+                          size="xs" 
+                          color="light"
+                          onClick={() => navigate(`/session/${session.id}`)}
+                        >
+                          {t('common.edit')}
+                        </Button>
+                        <Button 
+                          size="xs" 
+                          color="failure"
+                          onClick={() => confirmDelete(session.id!)}
+                        >
+                          {t('common.delete')}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            
+            {/* Paginación inferior */}
+            <div className="mt-6">
+              <CustomPagination 
+                currentPage={currentPage} 
+                totalPages={Math.ceil(filteredSessions.length / itemsPerPage)} 
+              />
+            </div>
+          </>
         ) : (
           <div className="bg-gray-800 rounded-lg p-6 text-center">
             <p className="text-gray-400">

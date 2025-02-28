@@ -39,7 +39,9 @@
     "no_upcoming_sessions": "No tienes sesiones próximas programadas.",
     "create_first_session": "Crear tu primera sesión",
     "allSessions": "Todas las Sesiones",
-    "no_search_results": "No hay sesiones que coincidan con tu búsqueda"
+    "no_search_results": "No hay sesiones que coincidan con tu búsqueda",
+    "showing_results": "Mostrando {{from}} a {{to}} de {{total}} resultados",
+    "no_results": "No hay sesiones encontradas"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",

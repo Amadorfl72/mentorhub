@@ -40,7 +40,9 @@
     "no_upcoming_sessions": "You don't have any upcoming scheduled sessions.",
     "create_first_session": "Create your first session",
     "allSessions": "All Sessions",
-    "no_search_results": "No sessions match your search criteria"
+    "no_search_results": "No sessions match your search criteria",
+    "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
+    "no_results": "No sessions found"
   },
   "welcome": "Welcome to the Application",
   "app": {
