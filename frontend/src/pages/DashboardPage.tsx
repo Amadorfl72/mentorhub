@@ -20,6 +20,7 @@ import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 import { fetchData } from '../services/apiService';
+import CachedImage from '../components/CachedImage';
 
 interface NotificationState {
   show: boolean;
@@ -452,11 +453,11 @@ const DashboardPage = () => {
                   <div className="mt-2 flex justify-between items-center">
                     {/* Información del mentor */}
                     <div className="flex items-center space-x-2">
-                      <Avatar 
-                        img={user?.photoUrl || "https://via.placeholder.com/40"} 
-                        rounded 
-                        size="xs"
-                        alt={user?.name}
+                      <CachedImage 
+                        src={user?.photoUrl || ''}
+                        alt={user?.name || 'Mentor'}
+                        className="w-6 h-6 rounded-full"
+                        fallbackSrc="https://via.placeholder.com/40"
                       />
                       <span className="text-sm font-medium">{user?.name}</span>
                     </div>
