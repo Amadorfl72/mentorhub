@@ -15,7 +15,8 @@
     "title": "Sessions",
     "description": "Here you can find all the sessions.",
     "new_session": "New Session",
-    "create_session": "Create Session"
+    "create_session": "Create Session",
+    "mySessions": "My Sessions"
   },
   "welcome": "Welcome to the Application",
   "app": {

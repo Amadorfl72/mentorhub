@@ -47,6 +47,7 @@ const GoogleCallback = () => {
             });
 
             if (data.token) {
+                console.log('Token recibido del servidor:', data.token.substring(0, 20) + '...');
                 login(data);
                 if (data.user.role && data.user.role !== 'pending') {
                     navigate('/dashboard');

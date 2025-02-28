@@ -15,7 +15,8 @@
     "title": "Sesiones",
     "description": "Aquí puedes encontrar todas las sesiones.",
     "new_session": "Nueva Sesión",
-    "create_session": "Crear Sesión"
+    "create_session": "Crear Sesión",
+    "mySessions": "Mis Sesiones"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",

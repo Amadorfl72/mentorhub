@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown, Card } from 'flowbite-react';
-import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList } from 'react-icons/hi';
+import { Avatar, Button, Dropdown, Card, Toast } from 'flowbite-react';
+import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList, HiCheck, HiX } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
+import { getMentorSessions, Session } from '../services/sessionService';
+
+interface NotificationState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error';
+}
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();
@@ -16,6 +23,14 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     mentors: 0
+  });
+
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [notification, setNotification] = useState<NotificationState>({ 
+    show: false, 
+    message: '', 
+    type: 'success' 
   });
 
   useEffect(() => {
@@ -56,6 +71,24 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
+  // Cargar las sesiones al montar el componente
+  useEffect(() => {
+    const loadSessions = async () => {
+      setLoading(true);
+      try {
+        const userSessions = await getMentorSessions();
+        setSessions(userSessions);
+      } catch (error) {
+        console.error('Error al cargar las sesiones:', error);
+        showNotification('Error al cargar las sesiones', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadSessions();
+  }, []);
+
   const handleLogout = () => {
     logout();
   };
@@ -64,13 +97,20 @@ const DashboardPage = () => {
     navigate('/register', { state: { isNewUser: false } });
   };
 
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
+  };
+
   // Si el usuario es 'pending', no renderizar el dashboard
   if (user?.role === 'pending') {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Navbar */}
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -152,6 +192,82 @@ const DashboardPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Sección de sesiones */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">{t('sessions.mySessions')}</h2>
+          <Button 
+            color="blue" 
+            onClick={() => navigate('/session/new')}
+            className="flex items-center gap-2"
+          >
+            <HiPlus className="h-5 w-5" />
+            {t('sessions.new_session')}
+          </Button>
+        </div>
+        
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : sessions.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sessions.map(session => (
+              <div key={session.id} className="bg-gray-800 rounded-lg p-4 shadow">
+                <h3 className="text-xl font-semibold mb-2">{session.title}</h3>
+                <p className="text-gray-300 mb-3">{session.description}</p>
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span>
+                    {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
+                  </span>
+                  <span>Max: {session.max_attendees}</span>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button 
+                    size="xs" 
+                    color="light"
+                    onClick={() => navigate(`/session/${session.id}`)}
+                  >
+                    Editar
+                  </Button>
+                  <Button size="xs" color="failure">Cancelar</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-800 rounded-lg p-6 text-center">
+            <p className="text-gray-400">No tienes sesiones programadas.</p>
+            <Button 
+              color="blue" 
+              onClick={() => navigate('/session/new')}
+              className="mt-4"
+            >
+              Crear tu primera sesión
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      {/* Notificación */}
+      {notification.show && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+              {notification.type === 'success' ? (
+                <HiCheck className="h-5 w-5 text-green-500" />
+              ) : (
+                <HiX className="h-5 w-5 text-red-500" />
+              )}
+            </div>
+            <div className="ml-3 text-sm font-normal">
+              {notification.message}
+            </div>
+            <Toast.Toggle />
+          </Toast>
+        </div>
+      )}
     </div>
   );
 };
