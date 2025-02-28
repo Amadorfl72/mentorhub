@@ -237,6 +237,21 @@ const DashboardPage = () => {
                     )}
                   </p>
                 </div>
+                
+                {/* Keywords como etiquetas */}
+                {session.keywords && session.keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {session.keywords.split(',').filter(Boolean).map(keyword => (
+                      <span 
+                        key={keyword.trim()} 
+                        className="bg-purple-900 text-purple-100 px-2 py-0.5 text-xs rounded-full"
+                      >
+                        {keyword.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-sm text-gray-400 mt-auto">
                   <span>
                     {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
