@@ -2,7 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Button, Dropdown, Card, Toast, Modal, Label } from 'flowbite-react';
-import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList, HiCheck, HiX, HiExclamation } from 'react-icons/hi';
+import { 
+  HiMenuAlt1, 
+  HiOutlineLogout, 
+  HiOutlineUser, 
+  HiOutlineCog, 
+  HiPlus, 
+  HiViewList, 
+  HiCheck, 
+  HiX, 
+  HiExclamation,
+  HiCalendar,
+  HiUsers
+} from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
@@ -424,10 +436,16 @@ const DashboardPage = () => {
                   )}
                   
                   <div className="flex justify-between text-sm text-gray-400 mt-auto">
-                    <span>
-                      {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
-                    </span>
-                    <span>Max: {session.max_attendees}</span>
+                    <div className="flex items-center">
+                      <HiCalendar className="mr-1 h-4 w-4 text-blue-400" />
+                      <span>
+                        {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <HiUsers className="mr-1 h-4 w-4 text-green-400" />
+                      <span>Max: {session.max_attendees}</span>
+                    </div>
                   </div>
                   
                   {/* Fila inferior con información del mentor y botones */}
