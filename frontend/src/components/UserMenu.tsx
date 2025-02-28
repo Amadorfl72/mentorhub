@@ -3,26 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'flowbite-react';
 import { HiUser, HiLogout } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
+import CachedImage from './CachedImage';
 
 const UserMenu = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  // Añadir log para debug
-  console.log('User photo URL:', user?.photoUrl);
-  
   return (
     <Dropdown
       arrowIcon={false}
       inline
       label={
-        <img
+        <CachedImage
+          src={user?.photoUrl || ''}
           alt="User profile"
-          src={user?.photoUrl}
           className="w-8 h-8 rounded-full cursor-pointer"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
+          fallbackSrc="https://via.placeholder.com/40"
         />
       }
     >

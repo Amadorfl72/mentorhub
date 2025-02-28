@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -9,8 +9,15 @@ import { AuthProvider } from './context/AuthContext';
 import GoogleCallback from './components/GoogleCallback';
 import PrivateRoute from './components/PrivateRoute';
 import SessionPage from './pages/SessionPage';
+import { initCacheCleanup } from './services/imageCache';
 
-const App = () => {
+const App: React.FC = () => {
+  useEffect(() => {
+    // Iniciar limpieza de caché cada hora
+    const cleanup = initCacheCleanup();
+    return () => cleanup(); // Limpiar al desmontar
+  }, []);
+
   return (
     <AuthProvider>
       <BrowserRouter>
