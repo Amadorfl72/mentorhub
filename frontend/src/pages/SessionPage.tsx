@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button, Label, TextInput, Textarea, Select } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createSession, getSession, updateSession, Session } from '../services/sessionService';
+import { HiX } from 'react-icons/hi';
+import { useTranslation } from 'react-i18next';
 
 interface SessionFormData {
   title: string;
@@ -15,6 +17,7 @@ const SessionPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const { t } = useTranslation();
   
   const [loading, setLoading] = useState<boolean>(false);
   const [sessionData, setSessionData] = useState<SessionFormData>({
@@ -58,6 +61,35 @@ const SessionPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Handlers para las keywords
+  const handleKeywordKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const input = e.target as HTMLInputElement;
+      const value = input.value.trim();
+      
+      if (value) {
+        const currentKeywords = sessionData.keywords ? sessionData.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
+        if (!currentKeywords.includes(value)) {
+          setSessionData({
+            ...sessionData,
+            keywords: [...currentKeywords, value].join(', ')
+          });
+        }
+        input.value = '';
+      }
+    }
+  };
+
+  const removeKeyword = (keyword: string) => {
+    const keywords = sessionData.keywords.split(',').map(k => k.trim()).filter(Boolean);
+    const filtered = keywords.filter(k => k !== keyword);
+    setSessionData({
+      ...sessionData,
+      keywords: filtered.join(', ')
+    });
   };
 
   const verifyToken = async () => {
@@ -143,10 +175,10 @@ const SessionPage: React.FC = () => {
       <header className="bg-gray-800 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">
-            {isEditMode ? 'Editar Sesión' : 'Crear Nueva Sesión'}
+            {isEditMode ? t('sessions.edit_session') : t('sessions.create_session')}
           </h1>
           <Button color="gray" onClick={() => navigate('/dashboard')}>
-            Volver al Dashboard
+            {t('common.back_to_dashboard')}
           </Button>
         </div>
       </header>
@@ -161,7 +193,7 @@ const SessionPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="bg-gray-800 rounded-lg p-6 shadow-lg max-w-3xl mx-auto">
             <div className="space-y-6">
               <div>
-                <Label htmlFor="title" value="Título" className="text-white mb-2" />
+                <Label htmlFor="title" value={t('sessions.title_label')} className="text-white mb-2" />
                 <TextInput
                   id="title"
                   name="title"
@@ -173,7 +205,7 @@ const SessionPage: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="description" value="Descripción" className="text-white mb-2" />
+                <Label htmlFor="description" value={t('sessions.description_label')} className="text-white mb-2" />
                 <Textarea
                   id="description"
                   name="description"
@@ -185,7 +217,7 @@ const SessionPage: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="scheduled_time" value="Fecha y hora" className="text-white mb-2" />
+                <Label htmlFor="scheduled_time" value={t('sessions.date_time')} className="text-white mb-2" />
                 <TextInput
                   id="scheduled_time"
                   name="scheduled_time"
@@ -197,7 +229,7 @@ const SessionPage: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="max_attendees" value="Máximo de participantes" className="text-white mb-2" />
+                <Label htmlFor="max_attendees" value={t('sessions.max_attendees')} className="text-white mb-2" />
                 <TextInput
                   id="max_attendees"
                   name="max_attendees"
@@ -209,22 +241,36 @@ const SessionPage: React.FC = () => {
               </div>
               
               <div>
-                <Label htmlFor="keywords" value="Palabras clave (separadas por comas)" className="text-white mb-2" />
+                <Label htmlFor="keywords" value={t('sessions.keywords')} className="text-white mb-2" />
                 <TextInput
                   id="keywords"
-                  name="keywords"
-                  value={sessionData.keywords}
-                  onChange={handleChange}
+                  name="keywords_input"
+                  placeholder={t('sessions.keywords_placeholder')}
+                  onKeyDown={handleKeywordKeyPress}
                   className="bg-gray-700 text-white border-gray-600"
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {sessionData.keywords.split(',').filter(Boolean).map((keyword) => (
+                    <span 
+                      key={keyword.trim()} 
+                      className="bg-purple-900 text-purple-100 px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                    >
+                      {keyword.trim()}
+                      <HiX 
+                        className="cursor-pointer hover:text-purple-300" 
+                        onClick={() => removeKeyword(keyword.trim())}
+                      />
+                    </span>
+                  ))}
+                </div>
               </div>
               
               <div className="flex justify-end gap-4 mt-8">
                 <Button color="gray" onClick={() => navigate('/dashboard')}>
-                  Cancelar
+                  {t('common.cancel')}
                 </Button>
                 <Button color="blue" type="submit" disabled={loading}>
-                  {loading ? 'Guardando...' : 'Guardar'}
+                  {loading ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
             </div>

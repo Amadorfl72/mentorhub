@@ -59,6 +59,10 @@
     "yes": "Oui",
     "no": "Non",
     "edit": "Modifier",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session ?"
   }
 }

@@ -17,7 +17,14 @@
     "new_session": "New Session",
     "create_session": "Create Session",
     "mySessions": "My Sessions",
-    "show_more": "... show more"
+    "show_more": "... show more",
+    "edit_session": "Edit Session",
+    "title_label": "Title",
+    "description_label": "Description",
+    "date_time": "Date and time",
+    "max_attendees": "Maximum attendees",
+    "keywords": "Keywords",
+    "keywords_placeholder": "Add keywords and press Enter"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -58,6 +65,10 @@
     "yes": "Yes",
     "no": "No",
     "edit": "Edit",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "saving": "Saving...",
+    "delete_confirmation": "Are you sure you want to delete this session?"
   }
 }

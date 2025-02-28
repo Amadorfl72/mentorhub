@@ -17,7 +17,14 @@
     "new_session": "Nueva Sesión",
     "create_session": "Crear Sesión",
     "mySessions": "Mis Sesiones",
-    "show_more": "... mostrar más"
+    "show_more": "... mostrar más",
+    "edit_session": "Editar Sesión",
+    "title_label": "Título",
+    "description_label": "Descripción",
+    "date_time": "Fecha y hora",
+    "max_attendees": "Máximo de asistentes",
+    "keywords": "Palabras clave",
+    "keywords_placeholder": "Añade palabras clave y presiona Enter"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -59,6 +66,10 @@
     "yes": "Sí",
     "no": "No",
     "edit": "Editar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "delete_confirmation": "¿Estás seguro de querer eliminar esta sesión?"
   }
 }
