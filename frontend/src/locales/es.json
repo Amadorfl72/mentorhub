@@ -9,7 +9,10 @@
     "totalUsers": "Usuarios Totales",
     "mentors": "Mentores",
     "profile": "Perfil",
-    "sessions": "Sesiones"
+    "sessions": "Sesiones",
+    "totalSessions": "Sesiones Totales",
+    "totalMentees": "Mentees Totales",
+    "totalMentors": "Mentores Totales"
   },
   "sessions": {
     "title": "Sesiones",
