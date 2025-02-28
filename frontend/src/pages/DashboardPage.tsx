@@ -395,10 +395,10 @@ const DashboardPage = () => {
               return (
                 <div 
                   key={session.id} 
-                  className={`bg-gray-800 rounded-lg p-4 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
+                  className={`bg-gray-800 rounded-lg p-5 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
                 >
                   {/* Título de la sesión */}
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-xl font-semibold mb-3">
                     {session.title}
                     {isPast && (
                       <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
@@ -407,7 +407,7 @@ const DashboardPage = () => {
                     )}
                   </h3>
                   
-                  <div className="mb-3 flex-grow">
+                  <div className="mb-4 flex-grow">
                     <p className="text-gray-300">
                       {truncateDescription(session.description)}
                       {session.description.length > 100 && (
@@ -423,11 +423,11 @@ const DashboardPage = () => {
                   
                   {/* Keywords como etiquetas */}
                   {session.keywords && session.keywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
+                    <div className="flex flex-wrap gap-1.5 mb-5">
                       {session.keywords.split(',').filter(Boolean).map(keyword => (
                         <span 
                           key={keyword.trim()} 
-                          className="bg-purple-900 text-purple-100 px-2 py-0.5 text-xs rounded-full"
+                          className="bg-purple-900 text-purple-100 px-2.5 py-1 text-xs rounded-full"
                         >
                           {keyword.trim()}
                         </span>
@@ -435,21 +435,21 @@ const DashboardPage = () => {
                     </div>
                   )}
                   
-                  <div className="flex justify-between text-sm text-gray-400 mt-auto">
+                  <div className="flex justify-between text-sm text-gray-400 mt-auto mb-4 py-1 border-t border-b border-gray-700">
                     <div className="flex items-center">
-                      <HiCalendar className="mr-1 h-4 w-4 text-blue-400" />
+                      <HiCalendar className="mr-1.5 h-4 w-4 text-blue-400" />
                       <span>
                         {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <HiUsers className="mr-1 h-4 w-4 text-green-400" />
+                      <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
                       <span>Max: {session.max_attendees}</span>
                     </div>
                   </div>
                   
                   {/* Fila inferior con información del mentor y botones */}
-                  <div className="mt-4 flex justify-between items-center">
+                  <div className="mt-2 flex justify-between items-center">
                     {/* Información del mentor */}
                     <div className="flex items-center space-x-2">
                       <Avatar 
