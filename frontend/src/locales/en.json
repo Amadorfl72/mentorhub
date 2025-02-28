@@ -16,7 +16,8 @@
     "description": "Here you can find all the sessions.",
     "new_session": "New Session",
     "create_session": "Create Session",
-    "mySessions": "My Sessions"
+    "mySessions": "My Sessions",
+    "show_more": "... show more"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -55,6 +56,8 @@
     "back": "Back",
     "back_to_dashboard": "Back to Dashboard",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "edit": "Edit",
+    "cancel": "Cancel"
   }
 }

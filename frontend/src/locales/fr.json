@@ -16,7 +16,8 @@
     "description": "Ici, vous pouvez trouver toutes les sessions.",
     "new_session": "Nouvelle Session",
     "create_session": "Créer une Session",
-    "mySessions": "Mes Sessions"
+    "mySessions": "Mes Sessions",
+    "show_more": "...voir plus"
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
@@ -56,6 +57,8 @@
     "back": "Retour",
     "back_to_dashboard": "Retour au Dashboard",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "edit": "Modifier",
+    "cancel": "Annuler"
   }
 }

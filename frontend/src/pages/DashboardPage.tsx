@@ -14,6 +14,14 @@ interface NotificationState {
   type: 'success' | 'error';
 }
 
+// Añadir esta función para truncar la descripción
+const truncateDescription = (description: string, maxLength: number = 100) => {
+  if (description.length <= maxLength) {
+    return description;
+  }
+  return description.substring(0, maxLength).trim();
+};
+
 const DashboardPage = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -214,10 +222,22 @@ const DashboardPage = () => {
         ) : sessions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sessions.map(session => (
-              <div key={session.id} className="bg-gray-800 rounded-lg p-4 shadow">
+              <div key={session.id} className="bg-gray-800 rounded-lg p-4 shadow h-full flex flex-col">
                 <h3 className="text-xl font-semibold mb-2">{session.title}</h3>
-                <p className="text-gray-300 mb-3">{session.description}</p>
-                <div className="flex justify-between text-sm text-gray-400">
+                <div className="mb-3 flex-grow">
+                  <p className="text-gray-300">
+                    {truncateDescription(session.description)}
+                    {session.description.length > 100 && (
+                      <button 
+                        onClick={() => navigate(`/session/${session.id}`)}
+                        className="text-blue-400 hover:text-blue-300 ml-1 focus:outline-none"
+                      >
+                        {t('sessions.show_more')}
+                      </button>
+                    )}
+                  </p>
+                </div>
+                <div className="flex justify-between text-sm text-gray-400 mt-auto">
                   <span>
                     {new Date(session.scheduled_time).toLocaleDateString()} - {new Date(session.scheduled_time).toLocaleTimeString()}
                   </span>
@@ -229,9 +249,9 @@ const DashboardPage = () => {
                     color="light"
                     onClick={() => navigate(`/session/${session.id}`)}
                   >
-                    Editar
+                    {t('common.edit')}
                   </Button>
-                  <Button size="xs" color="failure">Cancelar</Button>
+                  <Button size="xs" color="failure">{t('common.cancel')}</Button>
                 </div>
               </div>
             ))}
