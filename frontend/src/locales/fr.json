@@ -37,7 +37,11 @@
     "show_past": "Afficher les sessions passées",
     "no_sessions": "Vous n'avez pas de sessions programmées.",
     "no_upcoming_sessions": "Vous n'avez pas de sessions à venir programmées.",
-    "create_first_session": "Créer votre première session"
+    "create_first_session": "Créer votre première session",
+    "allSessions": "Toutes les Sessions",
+    "no_search_results": "Aucune session ne correspond à vos critères de recherche",
+    "showing_results": "Affichage de {{from}} à {{to}} sur {{total}} résultats",
+    "no_results": "Aucune session trouvée"
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
@@ -74,7 +78,6 @@
   },
   "common": {
     "logout": "Déconnexion",
-    "back": "Retour",
     "back_to_dashboard": "Retour au Dashboard",
     "yes": "Oui",
     "no": "Non",
@@ -83,6 +86,9 @@
     "delete": "Supprimer",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
-    "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session ?"
+    "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session ?",
+    "search": "Rechercher des sessions...",
+    "view": "Voir",
+    "back": "Retour au Tableau de Bord"
   }
 }

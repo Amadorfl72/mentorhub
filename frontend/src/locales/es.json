@@ -37,7 +37,11 @@
     "show_past": "Mostrar sesiones pasadas",
     "no_sessions": "No tienes sesiones programadas.",
     "no_upcoming_sessions": "No tienes sesiones próximas programadas.",
-    "create_first_session": "Crear tu primera sesión"
+    "create_first_session": "Crear tu primera sesión",
+    "allSessions": "Todas las Sesiones",
+    "no_search_results": "No hay sesiones que coincidan con tu búsqueda",
+    "showing_results": "Mostrando {{from}} a {{to}} de {{total}} resultados",
+    "no_results": "No hay sesiones encontradas"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -74,7 +78,6 @@
   },
   "common": {
     "logout": "Cerrar Sesión",
-    "back": "Volver",
     "back_to_dashboard": "Volver al Dashboard",
     "yes": "Sí",
     "no": "No",
@@ -83,6 +86,9 @@
     "delete": "Eliminar",
     "save": "Guardar",
     "saving": "Guardando...",
-    "delete_confirmation": "¿Estás seguro de querer eliminar esta sesión?"
+    "delete_confirmation": "¿Estás seguro de querer eliminar esta sesión?",
+    "search": "Buscar sesiones...",
+    "view": "Ver",
+    "back": "Volver al Dashboard"
   }
 }

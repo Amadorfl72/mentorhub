@@ -38,7 +38,11 @@
     "show_past": "Show past sessions",
     "no_sessions": "You don't have any scheduled sessions.",
     "no_upcoming_sessions": "You don't have any upcoming scheduled sessions.",
-    "create_first_session": "Create your first session"
+    "create_first_session": "Create your first session",
+    "allSessions": "All Sessions",
+    "no_search_results": "No sessions match your search criteria",
+    "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
+    "no_results": "No sessions found"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -74,7 +78,6 @@
   },
   "common": {
     "logout": "Logout",
-    "back": "Back",
     "back_to_dashboard": "Back to Dashboard",
     "yes": "Yes",
     "no": "No",
@@ -83,6 +86,9 @@
     "delete": "Delete",
     "save": "Save",
     "saving": "Saving...",
-    "delete_confirmation": "Are you sure you want to delete this session?"
+    "delete_confirmation": "Are you sure you want to delete this session?",
+    "search": "Search sessions...",
+    "view": "View",
+    "back": "Back to Dashboard"
   }
 }

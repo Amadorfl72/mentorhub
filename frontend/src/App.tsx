@@ -10,6 +10,7 @@ import GoogleCallback from './components/GoogleCallback';
 import PrivateRoute from './components/PrivateRoute';
 import SessionPage from './pages/SessionPage';
 import { initCacheCleanup } from './services/imageCache';
+import AllSessionsPage from './pages/AllSessionsPage';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -45,6 +46,14 @@ const App: React.FC = () => {
           />
           
           {/* Rutas de sesiones */}
+          <Route 
+            path="/sessions" 
+            element={
+              <PrivateRoute>
+                <AllSessionsPage />
+              </PrivateRoute>
+            } 
+          />
           <Route path="/session/new" element={<SessionPage />} />
           <Route path="/session/:id" element={<SessionPage />} />
           
