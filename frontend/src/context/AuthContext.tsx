@@ -5,6 +5,7 @@ export interface User {
   email: string;
   role: string;
   photoUrl?: string;
+  photoBlob?: string;
   skills?: string;
   interests?: string;
 }
@@ -25,22 +26,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
+  const convertImageToDataURL = async (imageUrl: string): Promise<string> => {
+    try {
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        cache: 'force-cache',
+      });
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting image to data URL:', error);
+      return imageUrl;
+    }
+  };
+
   useEffect(() => {
-    // Recuperar estado de autenticación al cargar
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
+    
     if (storedToken && storedUser) {
+      const parsedUser = JSON.parse(storedUser);
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      setUser(parsedUser);
       setIsAuthenticated(true);
+      
+      if (parsedUser.photoUrl && !parsedUser.photoBlob) {
+        convertImageToDataURL(parsedUser.photoUrl).then(dataUrl => {
+          const updatedUser = { ...parsedUser, photoBlob: dataUrl };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        });
+      }
     }
   }, []);
 
-  const login = (data: { token: string; user: User }) => {
+  const login = async (data: { token: string; user: User }) => {
+    let userData = { ...data.user };
+    
+    if (userData.photoUrl) {
+      try {
+        const dataUrl = await convertImageToDataURL(userData.photoUrl);
+        userData.photoBlob = dataUrl;
+      } catch (error) {
+        console.error('Error caching profile image:', error);
+      }
+    }
+    
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('user', JSON.stringify(userData));
     setToken(data.token);
-    setUser(data.user);
+    setUser(userData);
     setIsAuthenticated(true);
   };
 
@@ -54,8 +94,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = async (userData: Partial<User>) => {
     try {
-      // Aquí implementaremos la llamada a la API para actualizar el usuario
-      setUser(prev => prev ? { ...prev, ...userData } : null);
+      if (userData.photoUrl && user?.photoUrl !== userData.photoUrl) {
+        userData.photoBlob = await convertImageToDataURL(userData.photoUrl);
+      }
+      
+      const updatedUser = user ? { ...user, ...userData } : null;
+      setUser(updatedUser);
+      
+      if (updatedUser) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;

@@ -1,25 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown, Card, Toast, Modal, Label } from 'flowbite-react';
+import { Button, Card, Toast, Modal, Label, TextInput } from 'flowbite-react';
 import { 
-  HiMenuAlt1, 
-  HiOutlineLogout, 
-  HiOutlineUser, 
-  HiOutlineCog, 
-  HiPlus, 
-  HiViewList, 
+  HiSearch, 
+  HiCalendar, 
+  HiUsers, 
   HiCheck, 
   HiX, 
   HiExclamation,
-  HiCalendar,
-  HiUsers
+  HiOutlineFilter
 } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
-import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
 
 interface NotificationState {
@@ -28,16 +23,7 @@ interface NotificationState {
   type: 'success' | 'error';
 }
 
-// Interface for mentor information
-interface MentorInfo {
-  id: number;
-  name: string;
-  email: string;
-  photoUrl?: string;
-  role: string;
-}
-
-// Añadir esta función para truncar la descripción
+// Función para truncar la descripción
 const truncateDescription = (description: string, maxLength: number = 100) => {
   if (description.length <= maxLength) {
     return description;
@@ -45,23 +31,16 @@ const truncateDescription = (description: string, maxLength: number = 100) => {
   return description.substring(0, maxLength).trim();
 };
 
-const DashboardPage = () => {
-  const { user, logout } = useAuth();
+const AllSessionsPage = () => {
+  const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  // Añadir estado para las estadísticas
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalMentors: 0,
-    totalMentees: 0,
-    totalSessions: 0
-  });
-
   const [sessions, setSessions] = useState<Session[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [notification, setNotification] = useState<NotificationState>({ 
     show: false, 
     message: '', 
@@ -69,9 +48,9 @@ const DashboardPage = () => {
   });
   
   // Estado para almacenar información de mentores
-  const [mentors, setMentors] = useState<Record<number, MentorInfo>>({});
+  const [mentors, setMentors] = useState<Record<number, any>>({});
   
-  // Nuevo estado para el modal de confirmación de borrado
+  // Estado para el modal de confirmación de borrado
   const [deleteModal, setDeleteModal] = useState<{
     show: boolean;
     sessionId: number | null;
@@ -80,86 +59,19 @@ const DashboardPage = () => {
     sessionId: null
   });
 
-  // Añadir un nuevo estado para las próximas sesiones
-  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
-
-  // Función para obtener información básica del usuario
-  const getUserInfo = async (userId: number): Promise<MentorInfo | null> => {
-    try {
-      // Intentar obtener la información del usuario desde el backend
-      const response = await fetch(`http://localhost:5001/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const userData = await response.json();
-      
-      return {
-        id: userData.id,
-        name: userData.username || userData.name,
-        email: userData.email,
-        photoUrl: userData.photoUrl,
-        role: userData.role
-      };
-    } catch (error) {
-      console.error(`Error fetching user info for ID ${userId}:`, error);
-      return null;
-    }
+  // Función para obtener información básica del usuario (versión simplificada)
+  const getUserInfo = async (userId: number) => {
+    // En lugar de hacer una llamada a la API, devolvemos un objeto con datos genéricos
+    return {
+      id: userId,
+      name: `Mentor ${userId}`,
+      email: `mentor${userId}@example.com`,
+      photoUrl: '',
+      role: 'mentor'
+    };
   };
 
-  useEffect(() => {
-    // Verificar si el usuario necesita completar su perfil
-    if (user?.role === 'pending') {
-      navigate('/profile/edit', { 
-        state: { 
-          isNewUser: true,
-          message: t('profile.complete_profile_message')
-        } 
-      });
-    }
-  }, [user, navigate, t]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5001/api/stats', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Mapear los nombres de las propiedades del backend a los nombres que usa el frontend
-        setStats({
-          totalUsers: data.total_users || 0,
-          totalMentors: data.total_mentors || 0,
-          totalMentees: data.total_mentees || 0,
-          totalSessions: data.total_sessions || 0
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  // Modificar el useEffect que carga las sesiones para también establecer las próximas sesiones
+  // Cargar las sesiones al montar el componente
   useEffect(() => {
     const loadSessions = async () => {
       setLoading(true);
@@ -175,13 +87,22 @@ const DashboardPage = () => {
         
         setSessions(sortedSessions);
         
-        // Filtrar las sesiones no vencidas y tomar las 3 más próximas
-        const now = new Date().getTime();
-        const upcoming = sortedSessions
-          .filter(session => new Date(session.scheduled_time).getTime() > now)
-          .slice(0, 3);
+        // Crear un objeto con información básica de mentores
+        const mentorsInfo: Record<number, any> = {};
         
-        setUpcomingSessions(upcoming);
+        // Procesar cada sesión y crear información básica del mentor
+        sortedSessions.forEach(session => {
+          if (session.mentor_id && !mentorsInfo[session.mentor_id]) {
+            mentorsInfo[session.mentor_id] = {
+              id: session.mentor_id,
+              name: `Mentor ${session.mentor_id}`,
+              photoUrl: '',
+              role: 'mentor'
+            };
+          }
+        });
+        
+        setMentors(mentorsInfo);
       } catch (error) {
         console.error('Error al cargar las sesiones:', error);
         showNotification(t('sessions.load_error'), 'error');
@@ -193,22 +114,34 @@ const DashboardPage = () => {
     loadSessions();
   }, [t]);
 
-  // Filtrar las sesiones cuando cambia el estado de showPastSessions o sessions
+  // Filtrar las sesiones cuando cambia el estado de showPastSessions, searchTerm o sessions
   useEffect(() => {
-    if (showPastSessions) {
-      setFilteredSessions(sessions);
-    } else {
-      setFilteredSessions(sessions.filter(session => !isSessionPast(session.scheduled_time)));
+    let filtered = sessions;
+    
+    // Filtrar por sesiones pasadas si es necesario
+    if (!showPastSessions) {
+      filtered = filtered.filter(session => !isSessionPast(session.scheduled_time));
     }
-  }, [showPastSessions, sessions]);
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  const handleEditProfile = () => {
-    navigate('/register', { state: { isNewUser: false } });
-  };
+    
+    // Filtrar por término de búsqueda si hay uno
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(session => {
+        // Obtener información del mentor si existe
+        const mentorInfo = session.mentor_id ? mentors[session.mentor_id] : null;
+        const mentorName = mentorInfo ? mentorInfo.name.toLowerCase() : '';
+        
+        return (
+          session.title.toLowerCase().includes(term) ||
+          session.description.toLowerCase().includes(term) ||
+          (session.keywords && session.keywords.toLowerCase().includes(term)) ||
+          mentorName.includes(term)
+        );
+      });
+    }
+    
+    setFilteredSessions(filtered);
+  }, [showPastSessions, searchTerm, sessions, mentors]);
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ show: true, message, type });
@@ -275,23 +208,10 @@ const DashboardPage = () => {
     setShowPastSessions(value);
   };
 
-  // Función para formatear la fecha y hora de manera más compacta
-  const formatDateTime = (dateTimeString: string): string => {
-    const date = new Date(dateTimeString);
-    // Formato más compacto: DD/MM HH:MM
-    return date.toLocaleDateString(undefined, { 
-      day: '2-digit', 
-      month: '2-digit' 
-    }) + ' ' + date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+  // Función para manejar el cambio en el campo de búsqueda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
   };
-
-  // Si el usuario es 'pending', no renderizar el dashboard
-  if (user?.role === 'pending') {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -301,7 +221,7 @@ const DashboardPage = () => {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-white">
-                {t('dashboard.title')}
+                {t('sessions.allSessions')}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -313,124 +233,25 @@ const DashboardPage = () => {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
-          {/* Primer Card - Quick Actions (más estrecho) */}
-          <Card className="bg-gray-800 lg:col-span-3">
-            <h5 className="text-lg font-bold tracking-tight text-white mb-2">
-              {t('dashboard.quick_actions')}
-            </h5>
-            <div className="flex flex-col space-y-2">
-              {(user?.role === 'mentor' || user?.role === 'both') && (
-                <Button
-                  color="blue"
-                  size="sm"
-                  onClick={() => navigate('/session/new')}
-                >
-                  <HiPlus className="mr-2 h-4 w-4" />
-                  {t('sessions.new_session')}
-                </Button>
-              )}
-              
-              {/* Volver a añadir el botón "Ver todas las sesiones" */}
-              <Button 
-                size="sm"
-                gradientDuoTone="purpleToBlue"
-                className="hover:bg-blue-700"
-                onClick={() => navigate('/sessions')}
-              >
-                {t('dashboard.viewAllSessions')}
-              </Button>
+        {/* Barra de búsqueda y filtros */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          {/* Buscador */}
+          <div className="w-full md:w-1/2">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <HiSearch className="w-5 h-5 text-gray-400" />
+              </div>
+              <TextInput
+                type="search"
+                placeholder={t('common.search')}
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full pl-10 bg-gray-800 border-gray-600 text-white"
+              />
             </div>
-          </Card>
-
-          {/* Upcoming Sessions Card (más ancho) */}
-          <Card className="bg-gray-800 border-gray-700 lg:col-span-5">
-            <h2 className="text-lg font-bold text-white mb-2">
-              {t('dashboard.upcomingSessions')}
-            </h2>
-            
-            {/* Lista de próximas sesiones (más compacta) */}
-            {upcomingSessions.length > 0 ? (
-              <div className="space-y-2">
-                {upcomingSessions.map(session => (
-                  <div 
-                    key={session.id}
-                    onClick={() => navigate(`/session/${session.id}`)}
-                    className="flex items-center py-1.5 px-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
-                  >
-                    {/* Alinear fecha y título a la izquierda */}
-                    <div className="text-xs text-blue-400 whitespace-nowrap mr-2">
-                      {formatDateTime(session.scheduled_time)}
-                    </div>
-                    <div className="font-medium text-sm text-white truncate">
-                      {session.title}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-1.5 text-gray-400 text-xs">
-                {t('sessions.no_upcoming_sessions')}
-              </div>
-            )}
-          </Card>
-
-          {/* User Stats Card */}
-          <Card className="bg-gray-800 border-gray-700 lg:col-span-4">
-            <h2 className="text-xl font-bold text-white mb-3">
-              {t('dashboard.userStats')}
-            </h2>
-            
-            {/* Una sola fila con 4 columnas para todas las estadísticas */}
-            <div className="grid grid-cols-4 gap-2">
-              {/* Total de usuarios */}
-              <div className="text-center p-3 bg-gray-700 rounded-lg">
-                <div className="text-xl font-bold text-blue-400">
-                  {stats.totalUsers}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {t('dashboard.totalUsers')}
-                </div>
-              </div>
-              
-              {/* Total de sesiones */}
-              <div className="text-center p-3 bg-gray-700 rounded-lg">
-                <div className="text-xl font-bold text-yellow-400">
-                  {stats.totalSessions}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {t('dashboard.totalSessions')}
-                </div>
-              </div>
-              
-              {/* Mentores */}
-              <div className="text-center p-3 bg-gray-700 rounded-lg">
-                <div className="text-xl font-bold text-green-400">
-                  {stats.totalMentors}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {t('dashboard.mentors')}
-                </div>
-              </div>
-              
-              {/* Mentees */}
-              <div className="text-center p-3 bg-gray-700 rounded-lg">
-                <div className="text-xl font-bold text-purple-400">
-                  {stats.totalMentees}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {t('dashboard.mentees')}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Sección de sesiones */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">{t('sessions.mySessions')}</h2>
+          </div>
+          
+          {/* Filtros */}
           <div className="flex items-center gap-4">
             {/* Switch para mostrar sesiones pasadas */}
             <div className="flex items-center">
@@ -454,9 +275,19 @@ const DashboardPage = () => {
                 </button>
               </div>
             </div>
+            
+            {/* Botón para volver al dashboard */}
+            <Button 
+              color="gray" 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              {t('common.back')}
+            </Button>
           </div>
         </div>
         
+        {/* Lista de sesiones */}
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -465,6 +296,7 @@ const DashboardPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSessions.map(session => {
               const isPast = isSessionPast(session.scheduled_time);
+              const mentorInfo = session.mentor_id ? mentors[session.mentor_id] : null;
               
               return (
                 <div 
@@ -526,13 +358,19 @@ const DashboardPage = () => {
                   <div className="mt-2 flex justify-between items-center">
                     {/* Información del mentor */}
                     <div className="flex items-center space-x-2">
-                      <CachedImage 
-                        src={user?.photoUrl || ''}
-                        alt={user?.name || 'Mentor'}
-                        className="w-6 h-6 rounded-full"
-                        fallbackSrc="https://via.placeholder.com/40"
-                      />
-                      <span className="text-sm font-medium">{user?.name}</span>
+                      {mentorInfo?.photoUrl ? (
+                        <CachedImage 
+                          src={mentorInfo.photoUrl}
+                          alt={mentorInfo.name || 'Mentor'}
+                          className="w-6 h-6 rounded-full"
+                          fallbackSrc="/assets/default-avatar.png"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs text-white">
+                          {mentorInfo?.name?.charAt(0) || 'M'}
+                        </div>
+                      )}
+                      <span className="text-sm font-medium">{mentorInfo?.name || 'Unknown Mentor'}</span>
                     </div>
                     
                     {/* Botones de acción */}
@@ -542,15 +380,27 @@ const DashboardPage = () => {
                         color="light"
                         onClick={() => navigate(`/session/${session.id}`)}
                       >
-                        {t('common.edit')}
+                        {t('common.view')}
                       </Button>
-                      <Button 
-                        size="xs" 
-                        color="failure"
-                        onClick={() => confirmDelete(session.id!)}
-                      >
-                        {t('common.delete')}
-                      </Button>
+                      {/* Mostrar botones de edición/eliminación solo para administradores */}
+                      {user?.role === 'admin' && (
+                        <>
+                          <Button 
+                            size="xs" 
+                            color="light"
+                            onClick={() => navigate(`/session/${session.id}`)}
+                          >
+                            {t('common.edit')}
+                          </Button>
+                          <Button 
+                            size="xs" 
+                            color="failure"
+                            onClick={() => confirmDelete(session.id!)}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -560,17 +410,12 @@ const DashboardPage = () => {
         ) : (
           <div className="bg-gray-800 rounded-lg p-6 text-center">
             <p className="text-gray-400">
-              {showPastSessions 
-                ? t('sessions.no_sessions') 
-                : t('sessions.no_upcoming_sessions')}
+              {searchTerm 
+                ? t('sessions.no_search_results') 
+                : (showPastSessions 
+                  ? t('sessions.no_sessions') 
+                  : t('sessions.no_upcoming_sessions'))}
             </p>
-            <Button 
-              color="blue" 
-              onClick={() => navigate('/session/new')}
-              className="mt-4"
-            >
-              {t('sessions.create_first_session')}
-            </Button>
           </div>
         )}
       </div>
@@ -635,4 +480,4 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage; 
+export default AllSessionsPage;
