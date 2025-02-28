@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, Dropdown, Card, Toast } from 'flowbite-react';
-import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList, HiCheck, HiX } from 'react-icons/hi';
+import { Avatar, Button, Dropdown, Card, Toast, Modal } from 'flowbite-react';
+import { HiMenuAlt1, HiOutlineLogout, HiOutlineUser, HiOutlineCog, HiPlus, HiViewList, HiCheck, HiX, HiExclamation } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
-import { getMentorSessions, Session } from '../services/sessionService';
+import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 
 interface NotificationState {
   show: boolean;
@@ -39,6 +39,15 @@ const DashboardPage = () => {
     show: false, 
     message: '', 
     type: 'success' 
+  });
+  
+  // Nuevo estado para el modal de confirmación de borrado
+  const [deleteModal, setDeleteModal] = useState<{
+    show: boolean;
+    sessionId: number | null;
+  }>({
+    show: false,
+    sessionId: null
   });
 
   useEffect(() => {
@@ -110,6 +119,44 @@ const DashboardPage = () => {
     setTimeout(() => {
       setNotification({ show: false, message: '', type: 'success' });
     }, 3000);
+  };
+
+  // Función para mostrar el modal de confirmación de borrado
+  const confirmDelete = (sessionId: number) => {
+    setDeleteModal({
+      show: true,
+      sessionId
+    });
+  };
+
+  // Función para cancelar el borrado
+  const cancelDelete = () => {
+    setDeleteModal({
+      show: false,
+      sessionId: null
+    });
+  };
+
+  // Función para ejecutar el borrado
+  const handleDelete = async () => {
+    if (!deleteModal.sessionId) return;
+    
+    setLoading(true);
+    try {
+      await deleteSession(deleteModal.sessionId);
+      
+      // Actualizar la lista de sesiones
+      setSessions(sessions.filter(session => session.id !== deleteModal.sessionId));
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.delete_success'), 'success');
+    } catch (error) {
+      console.error('Error al eliminar la sesión:', error);
+      showNotification(t('sessions.delete_error'), 'error');
+    } finally {
+      setLoading(false);
+      cancelDelete();
+    }
   };
 
   // Si el usuario es 'pending', no renderizar el dashboard
@@ -266,7 +313,13 @@ const DashboardPage = () => {
                   >
                     {t('common.edit')}
                   </Button>
-                  <Button size="xs" color="failure">{t('common.delete')}</Button>
+                  <Button 
+                    size="xs" 
+                    color="failure"
+                    onClick={() => confirmDelete(session.id!)}
+                  >
+                    {t('common.delete')}
+                  </Button>
                 </div>
               </div>
             ))}
@@ -284,6 +337,44 @@ const DashboardPage = () => {
           </div>
         )}
       </div>
+      
+      {/* Modal de confirmación de borrado */}
+      <Modal
+        show={deleteModal.show}
+        size="md"
+        popup={true}
+        onClose={cancelDelete}
+        theme={{
+          content: {
+            base: "relative h-full w-full p-4 md:h-auto",
+            inner: "relative rounded-lg bg-gray-800 shadow dark:bg-gray-800"
+          }
+        }}
+      >
+        <Modal.Header theme={{ base: "flex items-start justify-between rounded-t border-b p-5 border-gray-700" }} />
+        <Modal.Body>
+          <div className="text-center">
+            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-yellow-400" />
+            <h3 className="mb-5 text-lg font-normal text-gray-300">
+              {t('common.delete_confirmation')}
+            </h3>
+            <div className="flex justify-center gap-4">
+              <Button
+                color="failure"
+                onClick={handleDelete}
+              >
+                {t('common.yes')}
+              </Button>
+              <Button
+                color="gray"
+                onClick={cancelDelete}
+              >
+                {t('common.no')}
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
       
       {/* Notificación */}
       {notification.show && (

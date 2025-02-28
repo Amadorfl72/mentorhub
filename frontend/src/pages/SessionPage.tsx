@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Label, TextInput, Textarea, Select } from 'flowbite-react';
+import { Button, Label, TextInput, Textarea, Select, Modal } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createSession, getSession, updateSession, Session } from '../services/sessionService';
-import { HiX, HiArrowLeft } from 'react-icons/hi';
+import { createSession, getSession, updateSession, deleteSession, Session } from '../services/sessionService';
+import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 
 interface SessionFormData {
@@ -27,6 +27,9 @@ const SessionPage: React.FC = () => {
     max_attendees: 10,
     keywords: '',
   });
+  
+  // Estado para el modal de confirmación de borrado
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -169,6 +172,32 @@ const SessionPage: React.FC = () => {
     }
   };
 
+  // Función para mostrar el modal de confirmación
+  const confirmDelete = () => {
+    setShowDeleteModal(true);
+  };
+
+  // Función para cancelar el borrado
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+  };
+
+  // Función para ejecutar el borrado
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      await deleteSession(parseInt(id));
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error al eliminar la sesión:', error);
+      // Aquí podrías mostrar un mensaje de error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -262,7 +291,9 @@ const SessionPage: React.FC = () => {
                 </div>
               </div>
               
+              {/* Botones de acción - Reorganizados */}
               <div className="flex justify-between items-center mt-8">
+                {/* Botón de volver al dashboard a la izquierda */}
                 <Button
                   color="blue"
                   onClick={() => navigate('/dashboard')}
@@ -270,14 +301,66 @@ const SessionPage: React.FC = () => {
                   <HiArrowLeft className="mr-2 h-5 w-5" />
                   {t('common.back_to_dashboard')}
                 </Button>
-                <Button color="blue" type="submit" disabled={loading}>
-                  {loading ? t('common.saving') : t('common.save')}
-                </Button>
+                
+                {/* Botones de eliminar y guardar a la derecha */}
+                <div className="flex gap-2">
+                  {/* Botón de eliminar (solo en modo edición) */}
+                  {isEditMode && (
+                    <Button
+                      color="failure"
+                      onClick={confirmDelete}
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  )}
+                  
+                  <Button color="blue" type="submit" disabled={loading}>
+                    {loading ? t('common.saving') : t('common.save')}
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
         )}
       </main>
+      
+      {/* Modal de confirmación de borrado */}
+      <Modal
+        show={showDeleteModal}
+        size="md"
+        popup={true}
+        onClose={cancelDelete}
+        theme={{
+          content: {
+            base: "relative h-full w-full p-4 md:h-auto",
+            inner: "relative rounded-lg bg-gray-800 shadow dark:bg-gray-800"
+          }
+        }}
+      >
+        <Modal.Header theme={{ base: "flex items-start justify-between rounded-t border-b p-5 border-gray-700" }} />
+        <Modal.Body>
+          <div className="text-center">
+            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-yellow-400" />
+            <h3 className="mb-5 text-lg font-normal text-gray-300">
+              {t('common.delete_confirmation')}
+            </h3>
+            <div className="flex justify-center gap-4">
+              <Button
+                color="failure"
+                onClick={handleDelete}
+              >
+                {t('common.yes')}
+              </Button>
+              <Button
+                color="gray"
+                onClick={cancelDelete}
+              >
+                {t('common.no')}
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

@@ -24,7 +24,9 @@
     "date_time": "Fecha y hora",
     "max_attendees": "Máximo de asistentes",
     "keywords": "Palabras clave",
-    "keywords_placeholder": "Añade palabras clave y presiona Enter"
+    "keywords_placeholder": "Añade palabras clave y presiona Enter",
+    "delete_success": "Sesión eliminada correctamente",
+    "delete_error": "Error al eliminar la sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",

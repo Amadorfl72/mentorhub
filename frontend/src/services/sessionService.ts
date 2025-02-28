@@ -45,7 +45,14 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
   }
 
-  return response.json();
+  // Verificar si hay contenido en la respuesta
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  
+  // Si no hay contenido JSON, devolver un objeto vacío o true
+  return {};
 };
 
 // Añade esta función para verificar si el token es válido
@@ -131,9 +138,29 @@ export const updateSession = async (sessionId: number, sessionData: Partial<Sess
 // Eliminar una sesión
 export const deleteSession = async (sessionId: number): Promise<boolean> => {
   try {
-    await fetchWithAuth(`/sessions/${sessionId}`, {
-      method: 'DELETE'
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const response = await fetch(`${API_URL}/sessions/${sessionId}`, {
+      method: 'DELETE',
+      headers,
+      credentials: 'include'
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Response error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+    
     return true;
   } catch (error) {
     console.error('Error al eliminar la sesión:', error);

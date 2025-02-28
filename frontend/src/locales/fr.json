@@ -17,7 +17,16 @@
     "new_session": "Nouvelle Session",
     "create_session": "Créer une Session",
     "mySessions": "Mes Sessions",
-    "show_more": "...voir plus"
+    "show_more": "...voir plus",
+    "edit_session": "Modifier la Session",
+    "title_label": "Titre",
+    "description_label": "Description",
+    "date_time": "Date et heure",
+    "max_attendees": "Maximum de participants",
+    "keywords": "Mots clés",
+    "keywords_placeholder": "Ajoutez des mots clés et appuyez sur Entrée",
+    "delete_success": "Session supprimée avec succès",
+    "delete_error": "Erreur lors de la suppression de la session"
   },
   "welcome": "Bienvenue dans l'Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",

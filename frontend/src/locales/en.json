@@ -24,7 +24,9 @@
     "date_time": "Date and time",
     "max_attendees": "Maximum attendees",
     "keywords": "Keywords",
-    "keywords_placeholder": "Add keywords and press Enter"
+    "keywords_placeholder": "Add keywords and press Enter",
+    "delete_success": "Session deleted successfully",
+    "delete_error": "Error deleting session"
   },
   "welcome": "Welcome to the Application",
   "app": {
