@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
+import ThemeSwitch from '../components/ThemeSwitch';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 import CachedImage from '../components/CachedImage';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
@@ -345,6 +346,7 @@ const AllSessionsPage = () => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeSwitch />
               <LanguageSelector />
               <UserMenu />
             </div>

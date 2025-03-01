@@ -5,6 +5,7 @@ import { createSession, getSession, updateSession, deleteSession, Session } from
 import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
+import ThemeSwitch from '../components/ThemeSwitch';
 
 interface SessionFormData {
   title: string;
@@ -245,28 +246,32 @@ const SessionPage: React.FC = () => {
             {isEditMode ? t('sessions.edit_session') : t('sessions.create_session')}
           </h1>
           
-          {/* Información del mentor (solo en modo edición) */}
-          {isEditMode && mentorInfo && (
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <p className="text-sm text-gray-400">{t('sessions.mentor')}</p>
-                <p className="font-medium">{mentorInfo.name}</p>
+          <div className="flex items-center space-x-4">
+            <ThemeSwitch />
+            
+            {/* Información del mentor (solo en modo edición) */}
+            {isEditMode && mentorInfo && (
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="text-sm text-gray-400">{t('sessions.mentor')}</p>
+                  <p className="font-medium">{mentorInfo.name}</p>
+                </div>
+                <Avatar 
+                  img={mentorInfo.photoUrl || "https://via.placeholder.com/40"} 
+                  rounded 
+                  size="md"
+                  alt={mentorInfo.name}
+                />
               </div>
-              <Avatar 
-                img={mentorInfo.photoUrl || "https://via.placeholder.com/40"} 
-                rounded 
-                size="md"
-                alt={mentorInfo.name}
-              />
-            </div>
-          )}
-          
-          {isEditMode && loadingMentor && (
-            <div className="flex items-center space-x-2">
-              <div className="animate-pulse h-10 w-24 bg-gray-700 rounded"></div>
-              <div className="animate-pulse h-10 w-10 bg-gray-700 rounded-full"></div>
-            </div>
-          )}
+            )}
+            
+            {isEditMode && loadingMentor && (
+              <div className="flex items-center space-x-2">
+                <div className="animate-pulse h-10 w-24 bg-gray-700 rounded"></div>
+                <div className="animate-pulse h-10 w-10 bg-gray-700 rounded-full"></div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
       

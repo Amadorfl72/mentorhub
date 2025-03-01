@@ -90,5 +90,15 @@
     "search": "Search sessions...",
     "view": "View",
     "back": "Back to Dashboard"
+  },
+  "themeSwitch": {
+    "easterEgg": {
+      "warning": "Warning!",
+      "message": "This is a serious program. Light theme is for losers. Are you sure you want to change?",
+      "yes": "Yes, I'm a loser",
+      "no": "No, I prefer to be cool"
+    },
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
   }
 }

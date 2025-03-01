@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, TextInput, Alert, Avatar, Label, ToggleSwitch } from 'flowbite-react';
 import { useTranslation } from 'react-i18next';
 import { HiX, HiArrowLeft, HiCheck } from 'react-icons/hi';
+import ThemeSwitch from '../components/ThemeSwitch';
 
 const RegisterPage = () => {
   const { user, updateUser } = useAuth();
@@ -115,7 +116,31 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8">
+    <div className="min-h-screen bg-gray-900">
+      {/* Header */}
+      <header className="bg-gray-800 shadow-md mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Button 
+                color="gray" 
+                onClick={() => navigate('/dashboard')}
+                className="mr-2"
+              >
+                <HiArrowLeft className="mr-2 h-4 w-4" />
+                {t('common.back')}
+              </Button>
+              <h1 className="text-xl font-bold text-white">
+                {isNewUser ? t('register.title') : t('register.edit_title')}
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <ThemeSwitch />
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="max-w-2xl mx-auto px-4">
         {/* Mensaje de éxito */}
         {showSuccess && (
