@@ -116,11 +116,40 @@ def verify_token():
         return jsonify({'error': 'No token provided'}), 401
 
     try:
-        # Verificar el token JWT de tu aplicación
-        # Implementar la lógica de verificación aquí
-        return jsonify({'valid': True})
-    except:
-        return jsonify({'error': 'Invalid token'}), 401
+        # Verificar el token JWT
+        payload = jwt.decode(
+            token,
+            os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
+            algorithms=['HS256']
+        )
+        
+        # Verificar si el token ha expirado
+        exp = payload.get('exp')
+        if exp and datetime.utcnow().timestamp() > exp:
+            return jsonify({'valid': False, 'error': 'Token expired'}), 401
+        
+        # Obtener el usuario asociado al token
+        user_id = payload.get('user_id')
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'valid': False, 'error': 'User not found'}), 404
+            
+        return jsonify({
+            'valid': True,
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'name': user.username,
+                'photoUrl': user.photoUrl,
+                'role': user.role,
+                'skills': user.skills,
+                'interests': user.interests
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error verificando token: {str(e)}")
+        return jsonify({'valid': False, 'error': str(e)}), 401
 
 @auth_bp.route('/auth/debug-token', methods=['GET'])
 def debug_token():
