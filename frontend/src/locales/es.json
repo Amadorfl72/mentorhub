@@ -90,5 +90,15 @@
     "search": "Buscar sesiones...",
     "view": "Ver",
     "back": "Volver al Dashboard"
+  },
+  "themeSwitch": {
+    "easterEgg": {
+      "warning": "¡Advertencia!",
+      "message": "Esto es un programa serio. El tema claro es para perdedores. ¿Seguro que quieres cambiar?",
+      "yes": "Sí, soy un perdedor",
+      "no": "No, prefiero ser cool"
+    },
+    "switchToLight": "Cambiar a modo claro",
+    "switchToDark": "Cambiar a modo oscuro"
   }
 }

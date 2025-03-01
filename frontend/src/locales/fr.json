@@ -90,5 +90,15 @@
     "search": "Rechercher des sessions...",
     "view": "Voir",
     "back": "Retour au Tableau de Bord"
+  },
+  "themeSwitch": {
+    "easterEgg": {
+      "warning": "Attention !",
+      "message": "C'est un programme sérieux. Le thème clair est pour les perdants. Êtes-vous sûr de vouloir changer ?",
+      "yes": "Oui, je suis un perdant",
+      "no": "Non, je préfère être cool"
+    },
+    "switchToLight": "Passer au mode clair",
+    "switchToDark": "Passer au mode sombre"
   }
 }
