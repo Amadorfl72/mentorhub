@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Button, Dropdown, Card, Toast, Modal, Label, Pagination } from 'flowbite-react';
@@ -22,6 +22,7 @@ import ThemeSwitch from '../components/ThemeSwitch';
 import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
 import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
+import { apiGet, testToken } from '../services/api';
 
 interface NotificationState {
   show: boolean;
@@ -29,13 +30,20 @@ interface NotificationState {
   type: 'success' | 'error';
 }
 
-// Interface for mentor information
+// Interfaz para la información de mentor/mentee
 interface MentorInfo {
   id: number;
   name: string;
   email: string;
   photoUrl?: string;
+  photoData?: string;
   role: string;
+}
+
+// Interfaz para sesiones enriquecidas con información de usuario
+interface EnrichedSession extends Session {
+  mentor: MentorInfo | null;
+  mentees: MentorInfo[];
 }
 
 // Añadir esta función para truncar la descripción
@@ -59,9 +67,9 @@ const DashboardPage = () => {
     totalSessions: 0
   });
 
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [sessions, setSessions] = useState<EnrichedSession[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<EnrichedSession[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
   const [notification, setNotification] = useState<NotificationState>({ 
     show: false, 
@@ -82,54 +90,125 @@ const DashboardPage = () => {
   });
 
   // Añadir un nuevo estado para las próximas sesiones
-  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<EnrichedSession[]>([]);
 
   // Añadir estos estados para manejar la paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Limitado a 6 registros por página
 
   // Función para obtener información básica del usuario
-  const getUserInfo = async (userId: number): Promise<MentorInfo | null> => {
+  const getUserInfo = useCallback(async (userId: number): Promise<MentorInfo | null> => {
     try {
-      // Intentar obtener la información del usuario desde el backend
-      const response = await fetch(`http://localhost:5001/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const userData = await response.json();
+      const userData = await apiGet(`/users/${userId}`);
       
       return {
         id: userData.id,
         name: userData.username || userData.name,
         email: userData.email,
         photoUrl: userData.photoUrl,
+        photoData: userData.photo_data,
         role: userData.role
       };
     } catch (error) {
       console.error(`Error fetching user info for ID ${userId}:`, error);
       return null;
     }
-  };
-
-  useEffect(() => {
-    // Verificar si el usuario necesita completar su perfil
-    if (user?.role === 'pending') {
-      navigate('/profile/edit', { 
-        state: { 
-          isNewUser: true,
-          message: t('profile.complete_profile_message')
-        } 
-      });
+  }, []);
+  
+  // Definir la función loadSessions con useCallback para evitar recreaciones innecesarias
+  const loadSessions = useCallback(async () => {
+    if (!user) {
+      console.warn('No user data, cannot load sessions');
+      return;
     }
-  }, [user, navigate, t]);
+    
+    try {
+      setLoading(true);
+      
+      // Obtener las sesiones del backend
+      const sessionsData = await getMentorSessions();
+      
+      // Si hay sesiones, obtener información adicional de los usuarios
+      if (sessionsData.length > 0) {
+        // Obtener IDs únicos de usuarios (mentores)
+        const userIdsSet: Record<number, boolean> = {};
+        sessionsData.forEach(session => {
+          userIdsSet[session.mentor_id] = true;
+          // Si la sesión tiene mentees, añadirlos también
+          if (session.mentees && Array.isArray(session.mentees)) {
+            session.mentees.forEach(mentee => {
+              if (mentee.id) {
+                userIdsSet[mentee.id] = true;
+              }
+            });
+          }
+        });
+        
+        const userIds = Object.keys(userIdsSet).map(id => parseInt(id));
+        
+        // Obtener información de todos los usuarios en paralelo
+        const usersInfo = await Promise.all(
+          userIds.map(id => getUserInfo(id))
+        );
+        
+        // Crear un mapa de ID de usuario a información de usuario
+        const userInfoMap = new Map<number, MentorInfo>();
+        usersInfo.forEach(info => {
+          if (info) {
+            userInfoMap.set(info.id, info);
+          }
+        });
+        
+        // Enriquecer las sesiones con información de usuario
+        const enrichedSessions = sessionsData.map(session => {
+          // Convertir los mentees a MentorInfo[]
+          const menteeInfos: MentorInfo[] = [];
+          if (session.mentees && Array.isArray(session.mentees)) {
+            session.mentees.forEach(mentee => {
+              if (mentee.id) {
+                const menteeInfo = userInfoMap.get(mentee.id);
+                if (menteeInfo) {
+                  menteeInfos.push(menteeInfo);
+                }
+              }
+            });
+          }
+          
+          return {
+            ...session,
+            mentor: userInfoMap.get(session.mentor_id) || null,
+            mentees: menteeInfos
+          } as EnrichedSession;
+        });
+        
+        setSessions(enrichedSessions);
+      } else {
+        setSessions([]);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+      setLoading(false);
+      setSessions([]);
+    }
+  }, [user, getUserInfo]);
+
+  // Efecto para verificar autenticación y cargar sesiones
+  useEffect(() => {
+    // Verificar si el usuario está autenticado
+    if (!user) {
+      console.error('No user data found. Redirecting to login...');
+      navigate('/login');
+      return;
+    }
+    
+    // Cargar las sesiones una sola vez al montar el componente
+    loadSessions();
+    
+    // No incluimos loadSessions en las dependencias para evitar ciclos infinitos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -164,47 +243,19 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // Modificar el useEffect que carga las sesiones para también establecer las próximas sesiones
+  // Simplificar el useEffect que filtra las sesiones
   useEffect(() => {
-    const loadSessions = async () => {
-      setLoading(true);
-      try {
-        const userSessions = await getMentorSessions();
-        
-        // Ordenar las sesiones por fecha (las más próximas primero)
-        const sortedSessions = userSessions.sort((a, b) => {
-          const dateA = new Date(a.scheduled_time).getTime();
-          const dateB = new Date(b.scheduled_time).getTime();
-          return dateA - dateB;
-        });
-        
-        setSessions(sortedSessions);
-        
-        // Filtrar las sesiones no vencidas y tomar las 3 más próximas
-        const now = new Date().getTime();
-        const upcoming = sortedSessions
-          .filter(session => new Date(session.scheduled_time).getTime() > now)
-          .slice(0, 3);
-        
-        setUpcomingSessions(upcoming);
-      } catch (error) {
-        console.error('Error al cargar las sesiones:', error);
-        showNotification(t('sessions.load_error'), 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
+    let filtered = [...sessions];
     
-    loadSessions();
-  }, [t]);
-
-  // Filtrar las sesiones cuando cambia el estado de showPastSessions o sessions
-  useEffect(() => {
-    if (showPastSessions) {
-      setFilteredSessions(sessions);
-    } else {
-      setFilteredSessions(sessions.filter(session => !isSessionPast(session.scheduled_time)));
+    // Filtrar por sesiones pasadas si es necesario
+    if (!showPastSessions) {
+      filtered = filtered.filter(session => !isSessionPast(session.scheduled_time));
     }
+    
+    setFilteredSessions(filtered);
+    
+    // Resetear a la primera página cuando cambian los filtros
+    setCurrentPage(1);
   }, [showPastSessions, sessions]);
 
   // Función para obtener las sesiones de la página actual
@@ -218,25 +269,6 @@ const DashboardPage = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
-
-  // Modificar el useEffect que filtra las sesiones para incluir la paginación
-  useEffect(() => {
-    let filtered = [...sessions];
-    
-    // Filtrar por sesiones pasadas si es necesario
-    if (!showPastSessions) {
-      filtered = filtered.filter(session => {
-        const sessionDate = new Date(session.scheduled_time);
-        const now = new Date();
-        return sessionDate >= now;
-      });
-    }
-    
-    setFilteredSessions(filtered);
-    
-    // Resetear a la primera página cuando cambian los filtros
-    setCurrentPage(1);
-  }, [showPastSessions, sessions]);
 
   const handleLogout = () => {
     logout();
@@ -370,6 +402,9 @@ const DashboardPage = () => {
   if (user?.role === 'pending') {
     return null;
   }
+
+  // Asegurarse de que getCurrentPageSessions se llama correctamente en el renderizado
+  const paginatedSessions = getCurrentPageSessions();
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -565,7 +600,7 @@ const DashboardPage = () => {
         ) : filteredSessions.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getCurrentPageSessions().map(session => {
+              {paginatedSessions.map(session => {
                 const isPast = isSessionPast(session.scheduled_time);
                 
                 return (
@@ -633,6 +668,7 @@ const DashboardPage = () => {
                           alt={user?.name || 'Mentor'}
                           className="w-6 h-6 rounded-full"
                           fallbackSrc="https://via.placeholder.com/40"
+                          useUserPhoto={true}
                         />
                         <span className="text-sm font-medium">{user?.name}</span>
                       </div>

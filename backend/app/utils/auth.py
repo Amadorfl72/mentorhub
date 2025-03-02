@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'your_secret_key_here')
+# Usar una única clave secreta para todo
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key')
 TOKEN_EXPIRATION_MINUTES = int(os.getenv('TOKEN_EXPIRATION_MINUTES', 1440))  # Valor por defecto de 1 día
 
 def generate_token(user):
@@ -20,14 +21,18 @@ def generate_token(user):
     
     return jwt.encode(
         payload,
-        os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
+        JWT_SECRET_KEY,
         algorithm='HS256'
     )
 
 def decode_token(token):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-        return payload['sub']
+        payload = jwt.decode(
+            token, 
+            JWT_SECRET_KEY,
+            algorithms=['HS256']
+        )
+        return payload['user_id']
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
@@ -53,7 +58,7 @@ def login_required(f):
             try:
                 payload = jwt.decode(
                     token,
-                    os.getenv('JWT_SECRET_KEY', 'jwt-secret-key'),
+                    JWT_SECRET_KEY,
                     algorithms=['HS256']
                 )
                 

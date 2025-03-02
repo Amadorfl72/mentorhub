@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface User {
+  id?: number;
   name: string;
   email: string;
   role: string;
   photoUrl?: string;
-  photoBlob?: string;
+  photoData?: string; // Imagen en base64 desde el backend
   skills?: string;
   interests?: string;
+  admin?: boolean;
 }
 
 interface AuthContextType {
@@ -26,61 +28,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  const convertImageToDataURL = async (imageUrl: string): Promise<string> => {
-    try {
-      const response = await fetch(imageUrl, {
-        mode: 'cors',
-        cache: 'force-cache',
-      });
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.error('Error converting image to data URL:', error);
-      return imageUrl;
-    }
-  };
-
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
     if (storedToken && storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setToken(storedToken);
-      setUser(parsedUser);
-      setIsAuthenticated(true);
-      
-      if (parsedUser.photoUrl && !parsedUser.photoBlob) {
-        convertImageToDataURL(parsedUser.photoUrl).then(dataUrl => {
-          const updatedUser = { ...parsedUser, photoBlob: dataUrl };
-          setUser(updatedUser);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-        });
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setToken(storedToken);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        logout();
       }
     }
   }, []);
 
-  const login = async (data: { token: string; user: User }) => {
-    let userData = { ...data.user };
-    
-    if (userData.photoUrl) {
-      try {
-        const dataUrl = await convertImageToDataURL(userData.photoUrl);
-        userData.photoBlob = dataUrl;
-      } catch (error) {
-        console.error('Error caching profile image:', error);
-      }
-    }
-    
+  const login = (data: { token: string; user: User }) => {
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(data.user));
     setToken(data.token);
-    setUser(userData);
+    setUser(data.user);
     setIsAuthenticated(true);
   };
 
@@ -94,16 +63,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = async (userData: Partial<User>) => {
     try {
-      if (userData.photoUrl && user?.photoUrl !== userData.photoUrl) {
-        userData.photoBlob = await convertImageToDataURL(userData.photoUrl);
+      if (!user) {
+        throw new Error('No user to update');
       }
       
-      const updatedUser = user ? { ...user, ...userData } : null;
+      const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
-      
-      if (updatedUser) {
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-      }
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;

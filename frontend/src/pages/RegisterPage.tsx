@@ -13,14 +13,14 @@ const RegisterPage = () => {
   const location = useLocation();
   const { isNewUser, message } = location.state || {};
 
-  // Log temporal para debug
-  console.log('User data:', {
-    name: user?.name,
-    email: user?.email,
-    role: user?.role,
-    skills: user?.skills,
-    interests: user?.interests
-  });
+  // Remove or comment out these debug logs
+  // console.log('User data:', {
+  //   name: user?.name,
+  //   email: user?.email,
+  //   role: user?.role,
+  //   skills: user?.skills,
+  //   interests: user?.interests
+  // });
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -32,9 +32,9 @@ const RegisterPage = () => {
 
   const [isMentor, setIsMentor] = useState(user?.role === 'mentor');
 
-  // Log temporal para debug del estado inicial
-  console.log('Form data:', formData);
-  console.log('Is mentor:', isMentor);
+  // Remove or comment out these debug logs
+  // console.log('Form data:', formData);
+  // console.log('Is mentor:', isMentor);
 
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -48,8 +48,17 @@ const RegisterPage = () => {
         interests: user.interests || ''
       });
       setIsMentor(user.role === 'mentor');
+      
+      // If you need logging, put it here so it only runs when user changes
+      // console.log('User updated, new form data:', {
+      //   name: user.name,
+      //   email: user.email,
+      //   role: user.role,
+      //   skills: user.skills,
+      //   interests: user.interests
+      // });
     }
-  }, [user]);
+  }, [user]); // Make sure the dependency array is here
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

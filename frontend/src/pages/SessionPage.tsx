@@ -6,6 +6,7 @@ import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
+import { verifyToken } from '../services/authService';
 
 interface SessionFormData {
   title: string;
@@ -134,43 +135,14 @@ const SessionPage: React.FC = () => {
     });
   };
 
-  const verifyToken = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('No token found');
-      return false;
-    }
-    
-    try {
-      // Hacer una solicitud al endpoint de depuración
-      const response = await fetch('http://localhost:5001/auth/debug-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        console.error('Token verification failed');
-        return false;
-      }
-      
-      const data = await response.json();
-      console.log('Token verification result:', data);
-      return true;
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      return false;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     setLoading(true);
     try {
-      // Verificar el token primero
-      const isTokenValid = await verifyToken();
-      if (!isTokenValid) {
+      // Usar la función verifyToken del servicio
+      const { valid } = await verifyToken();
+      if (!valid) {
         throw new Error('Token inválido o expirado');
       }
       
