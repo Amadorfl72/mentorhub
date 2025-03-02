@@ -510,8 +510,8 @@ const DashboardPage = () => {
               {t('dashboard.userStats')}
             </h2>
             
-            {/* Una sola fila con 4 columnas para todas las estadísticas */}
-            <div className="grid grid-cols-4 gap-2">
+            {/* Cambiar de grid-cols-4 a grid-cols-3 */}
+            <div className="grid grid-cols-3 gap-2">
               {/* Total de usuarios */}
               <div className="text-center p-3 bg-gray-700 rounded-lg">
                 <div className="text-xl font-bold text-blue-400">
@@ -539,16 +539,6 @@ const DashboardPage = () => {
                 </div>
                 <div className="text-xs text-gray-400">
                   {t('dashboard.mentors')}
-                </div>
-              </div>
-              
-              {/* Mentees */}
-              <div className="text-center p-3 bg-gray-700 rounded-lg">
-                <div className="text-xl font-bold text-purple-400">
-                  {stats.totalMentees}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {t('dashboard.mentees')}
                 </div>
               </div>
             </div>

@@ -25,7 +25,7 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   }
   
   // Verifica el formato del token (para depuración)
-  console.log('Token:', token);
+  // console.log('Token:', token);
   
   const headers = {
     'Content-Type': 'application/json',
