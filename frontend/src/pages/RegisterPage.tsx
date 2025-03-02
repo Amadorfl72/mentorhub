@@ -131,14 +131,6 @@ const RegisterPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Button 
-                color="gray" 
-                onClick={() => navigate('/dashboard')}
-                className="mr-2"
-              >
-                <HiArrowLeft className="mr-2 h-4 w-4" />
-                {t('common.back')}
-              </Button>
               <h1 className="text-xl font-bold text-white">
                 {isNewUser ? t('register.title') : t('register.edit_title')}
               </h1>

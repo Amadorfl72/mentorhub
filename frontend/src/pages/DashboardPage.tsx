@@ -258,6 +258,21 @@ const DashboardPage = () => {
     setCurrentPage(1);
   }, [showPastSessions, sessions]);
 
+  // Añadir este nuevo useEffect para las sesiones próximas
+  useEffect(() => {
+    // Filtrar solo las sesiones futuras y ordenarlas por fecha
+    const upcoming = sessions
+      .filter(session => !isSessionPast(session.scheduled_time))
+      .sort((a, b) => {
+        const dateA = new Date(a.scheduled_time).getTime();
+        const dateB = new Date(b.scheduled_time).getTime();
+        return dateA - dateB;
+      })
+      .slice(0, 3); // Limitar a 3 sesiones próximas
+    
+    setUpcomingSessions(upcoming);
+  }, [sessions]);
+
   // Función para obtener las sesiones de la página actual
   const getCurrentPageSessions = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
