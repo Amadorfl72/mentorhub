@@ -64,7 +64,8 @@ const DashboardPage = () => {
     totalUsers: 0,
     totalMentors: 0,
     totalMentees: 0,
-    totalSessions: 0
+    totalSessions: 0,
+    sessionsThisWeek: 0
   });
 
   const [sessions, setSessions] = useState<EnrichedSession[]>([]);
@@ -233,7 +234,8 @@ const DashboardPage = () => {
           totalUsers: data.total_users || 0,
           totalMentors: data.total_mentors || 0,
           totalMentees: data.total_mentees || 0,
-          totalSessions: data.total_sessions || 0
+          totalSessions: data.total_sessions || 0,
+          sessionsThisWeek: data.sessions_this_week || 0
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -242,6 +244,34 @@ const DashboardPage = () => {
 
     fetchStats();
   }, []);
+
+  // Añadir un useEffect para calcular las sesiones de esta semana
+  useEffect(() => {
+    if (sessions.length > 0) {
+      // Calcular el inicio de la semana actual (lunes)
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Ajustar para que el lunes sea el primer día
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      // Contar sesiones creadas esta semana
+      const sessionsThisWeek = sessions.filter(session => {
+        // Verificar si session.created_at existe
+        if (!session.created_at) return false;
+        
+        const createdAt = new Date(session.created_at);
+        return createdAt >= startOfWeek;
+      }).length;
+      
+      // Actualizar el estado con el nuevo valor
+      setStats(prevStats => ({
+        ...prevStats,
+        sessionsThisWeek
+      }));
+      
+      console.log('Sessions this week:', sessionsThisWeek, 'Start of week:', startOfWeek);
+    }
+  }, [sessions]);
 
   // Simplificar el useEffect que filtra las sesiones
   useEffect(() => {
@@ -510,8 +540,8 @@ const DashboardPage = () => {
               {t('dashboard.userStats')}
             </h2>
             
-            {/* Cambiar de grid-cols-4 a grid-cols-3 */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Grid de 3 columnas para los KPIs principales */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
               {/* Total de usuarios */}
               <div className="text-center p-3 bg-gray-700 rounded-lg">
                 <div className="text-xl font-bold text-blue-400">
@@ -540,6 +570,16 @@ const DashboardPage = () => {
                 <div className="text-xs text-gray-400">
                   {t('dashboard.mentors')}
                 </div>
+              </div>
+            </div>
+            
+            {/* Añadir el contador de sesiones de esta semana */}
+            <div className="p-3 bg-gray-700 rounded-lg text-center">
+              <div className="text-lg font-bold text-purple-400">
+                {stats.sessionsThisWeek}
+              </div>
+              <div className="text-xs text-gray-400">
+                {t('dashboard.sessionsThisWeek')}
               </div>
             </div>
           </Card>

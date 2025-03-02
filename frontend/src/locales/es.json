@@ -12,7 +12,8 @@
     "sessions": "Sesiones",
     "totalSessions": "Sesiones",
     "totalMentees": "Mentees",
-    "totalMentors": "Mentores"
+    "totalMentors": "Mentores",
+    "sessionsThisWeek": "Sesiones esta semana"
   },
   "sessions": {
     "title": "Sesiones",
