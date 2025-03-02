@@ -12,27 +12,44 @@ interface ImageCache {
 }
 
 // Objeto para rastrear solicitudes en curso
-const pendingRequests: { [url: string]: Promise<string> } = {};
+const pendingRequests: Record<string, Promise<string> | null> = {};
 
 // Cargar la caché desde localStorage
 const loadCache = (): ImageCache => {
-  const cached = localStorage.getItem(IMAGE_CACHE_KEY);
-  return cached ? JSON.parse(cached) : {};
+  try {
+    const cached = localStorage.getItem(IMAGE_CACHE_KEY);
+    return cached ? JSON.parse(cached) : {};
+  } catch (error) {
+    console.error('Error loading image cache:', error);
+    return {};
+  }
 };
 
 // Guardar la caché en localStorage
 const saveCache = (cache: ImageCache): void => {
-  localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+  try {
+    localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.error('Error saving image cache:', error);
+  }
 };
 
 // Convertir una URL de imagen a data URL
 export const convertImageToDataURL = async (imageUrl: string): Promise<string> => {
   if (!imageUrl) return '';
   
+  // Verificar si es una URL de datos (data:image)
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+  
   try {
     const response = await fetch(imageUrl, {
       mode: 'cors',
       cache: 'force-cache',
+      headers: {
+        'Cache-Control': 'max-age=86400', // 24 horas
+      }
     });
     
     if (!response.ok) {
@@ -48,7 +65,7 @@ export const convertImageToDataURL = async (imageUrl: string): Promise<string> =
     });
   } catch (error) {
     console.error('Error converting image to data URL:', error);
-    return imageUrl; // Fallback to original URL if conversion fails
+    return ''; // Retornar string vacío en caso de error
   }
 };
 
@@ -59,6 +76,17 @@ export const getCachedImage = async (
 ): Promise<string> => {
   if (!imageUrl) return '';
   
+  // Verificar si es una URL de datos (data:image)
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl;
+  }
+  
+  // Verificar si es una URL de Google
+  const isGoogleUrl = imageUrl.includes('googleusercontent.com');
+  
+  // Para URLs de Google, usar una caché más larga
+  const actualExpiresIn = isGoogleUrl ? 7 * 24 * 60 * 60 * 1000 : expiresIn; // 7 días para Google
+  
   const cache = loadCache();
   const now = Date.now();
   
@@ -68,38 +96,44 @@ export const getCachedImage = async (
   }
   
   // Si ya hay una solicitud en curso para esta URL, reutilizarla
-  if (Object.prototype.hasOwnProperty.call(pendingRequests, imageUrl)) {
-    return pendingRequests[imageUrl];
+  if (pendingRequests[imageUrl]) {
+    try {
+      return await pendingRequests[imageUrl]!;
+    } catch (error) {
+      console.error(`Error in pending request for ${imageUrl}:`, error);
+      pendingRequests[imageUrl] = null;
+      return '';
+    }
   }
   
   // Si no está en caché o ha expirado, cargarla
   try {
     // Crear una promesa para esta solicitud y almacenarla
-    pendingRequests[imageUrl] = (async () => {
-      try {
-        const dataUrl = await convertImageToDataURL(imageUrl);
-        
-        // Actualizar la caché
-        const updatedCache = loadCache(); // Recargar la caché por si cambió
-        updatedCache[imageUrl] = {
-          dataUrl,
-          timestamp: now,
-          expiresIn
-        };
-        
-        saveCache(updatedCache);
-        return dataUrl;
-      } finally {
-        // Eliminar esta solicitud de las pendientes cuando termine
-        delete pendingRequests[imageUrl];
-      }
-    })();
+    const promise = convertImageToDataURL(imageUrl);
+    pendingRequests[imageUrl] = promise;
     
-    return pendingRequests[imageUrl];
+    const dataUrl = await promise;
+    
+    // Actualizar la caché solo si obtuvimos un dataUrl válido
+    if (dataUrl) {
+      const updatedCache = loadCache(); // Recargar la caché por si cambió
+      updatedCache[imageUrl] = {
+        dataUrl,
+        timestamp: now,
+        expiresIn: actualExpiresIn
+      };
+      
+      saveCache(updatedCache);
+    }
+    
+    // Limpiar la solicitud pendiente
+    pendingRequests[imageUrl] = null;
+    
+    return dataUrl;
   } catch (error) {
     console.error(`Error caching image for URL ${imageUrl}:`, error);
-    delete pendingRequests[imageUrl];
-    return imageUrl; // Fallback to original URL if caching fails
+    pendingRequests[imageUrl] = null;
+    return '';
   }
 };
 

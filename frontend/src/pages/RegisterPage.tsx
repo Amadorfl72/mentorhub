@@ -13,14 +13,14 @@ const RegisterPage = () => {
   const location = useLocation();
   const { isNewUser, message } = location.state || {};
 
-  // Log temporal para debug
-  console.log('User data:', {
-    name: user?.name,
-    email: user?.email,
-    role: user?.role,
-    skills: user?.skills,
-    interests: user?.interests
-  });
+  // Remove or comment out these debug logs
+  // console.log('User data:', {
+  //   name: user?.name,
+  //   email: user?.email,
+  //   role: user?.role,
+  //   skills: user?.skills,
+  //   interests: user?.interests
+  // });
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -32,9 +32,9 @@ const RegisterPage = () => {
 
   const [isMentor, setIsMentor] = useState(user?.role === 'mentor');
 
-  // Log temporal para debug del estado inicial
-  console.log('Form data:', formData);
-  console.log('Is mentor:', isMentor);
+  // Remove or comment out these debug logs
+  // console.log('Form data:', formData);
+  // console.log('Is mentor:', isMentor);
 
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -48,8 +48,17 @@ const RegisterPage = () => {
         interests: user.interests || ''
       });
       setIsMentor(user.role === 'mentor');
+      
+      // If you need logging, put it here so it only runs when user changes
+      // console.log('User updated, new form data:', {
+      //   name: user.name,
+      //   email: user.email,
+      //   role: user.role,
+      //   skills: user.skills,
+      //   interests: user.interests
+      // });
     }
-  }, [user]);
+  }, [user]); // Make sure the dependency array is here
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -122,14 +131,6 @@ const RegisterPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Button 
-                color="gray" 
-                onClick={() => navigate('/dashboard')}
-                className="mr-2"
-              >
-                <HiArrowLeft className="mr-2 h-4 w-4" />
-                {t('common.back')}
-              </Button>
               <h1 className="text-xl font-bold text-white">
                 {isNewUser ? t('register.title') : t('register.edit_title')}
               </h1>

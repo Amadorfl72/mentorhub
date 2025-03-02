@@ -1,5 +1,5 @@
 import React, { useState, useEffect, memo } from 'react';
-import { getCachedImage } from '../services/imageCache';
+import { useAuth } from '../context/AuthContext';
 
 // Definir los valores válidos para referrerPolicy
 type ReferrerPolicy = 
@@ -19,6 +19,7 @@ interface CachedImageProps {
   fallbackSrc?: string;
   crossOrigin?: 'anonymous' | 'use-credentials';
   referrerPolicy?: ReferrerPolicy;
+  useUserPhoto?: boolean; // Usar la foto del usuario del contexto
 }
 
 const CachedImage: React.FC<CachedImageProps> = ({ 
@@ -27,51 +28,44 @@ const CachedImage: React.FC<CachedImageProps> = ({
   className = '', 
   fallbackSrc = 'https://via.placeholder.com/40',
   crossOrigin = 'anonymous',
-  referrerPolicy = 'no-referrer'
+  referrerPolicy = 'no-referrer',
+  useUserPhoto = false
 }) => {
+  const { user } = useAuth();
   const [imageSrc, setImageSrc] = useState<string>(fallbackSrc);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
 
   useEffect(() => {
-    let isMounted = true;
+    // Si se debe usar la foto del usuario y está disponible en el contexto
+    if (useUserPhoto && user) {
+      // Usar photoData (base64) si está disponible, sino usar photoUrl
+      if (user.photoData) {
+        setImageSrc(user.photoData);
+        setLoading(false);
+        setError(false);
+        return;
+      } else if (user.photoUrl) {
+        setImageSrc(user.photoUrl);
+        setLoading(false);
+        setError(false);
+        return;
+      }
+    }
     
-    if (!src) {
-      setImageSrc(fallbackSrc);
+    // Si no se usa la foto del usuario, usar la URL proporcionada
+    if (src) {
+      setImageSrc(src);
       setLoading(false);
+      setError(false);
       return;
     }
-
-    const loadImage = async () => {
-      try {
-        setLoading(true);
-        const cachedSrc = await getCachedImage(src);
-        
-        // Verificar si el componente sigue montado antes de actualizar el estado
-        if (isMounted) {
-          setImageSrc(cachedSrc);
-          setError(false);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Error loading cached image:', err);
-        
-        // Verificar si el componente sigue montado antes de actualizar el estado
-        if (isMounted) {
-          setImageSrc(fallbackSrc);
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadImage();
     
-    // Función de limpieza para evitar actualizar el estado si el componente se desmonta
-    return () => {
-      isMounted = false;
-    };
-  }, [src, fallbackSrc]);
+    // Si no hay URL, usar la imagen de fallback
+    setImageSrc(fallbackSrc);
+    setLoading(false);
+    setError(false);
+  }, [src, fallbackSrc, user, useUserPhoto]);
 
   return (
     <>

@@ -400,11 +400,10 @@ const AllSessionsPage = () => {
             
             {/* Botón para volver al dashboard */}
             <Button 
-              color="dark"
+              color="blue"
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700"
             >
-              <HiArrowLeft className="w-4 h-4" />
+              <HiArrowLeft className="mr-2 h-5 w-5" />
               {t('common.back_to_dashboard')}
             </Button>
           </div>
