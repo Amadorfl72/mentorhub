@@ -42,7 +42,9 @@
     "allSessions": "Todas las Sesiones",
     "no_search_results": "No hay sesiones que coincidan con tu búsqueda",
     "showing_results": "Mostrando {{from}} a {{to}} de {{total}} resultados",
-    "no_results": "No hay sesiones encontradas"
+    "no_results": "No hay sesiones encontradas",
+    "enrol_success": "Inscripción exitosa en la sesión",
+    "enrol_error": "Error al inscribirse en la sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -90,7 +92,9 @@
     "delete_confirmation": "¿Estás seguro de querer eliminar esta sesión?",
     "search": "Buscar sesiones...",
     "view": "Ver",
-    "back": "Volver al Dashboard"
+    "back": "Volver al Dashboard",
+    "enrol": "Inscribirse",
+    "processing": "Procesando..."
   },
   "themeSwitch": {
     "easterEgg": {

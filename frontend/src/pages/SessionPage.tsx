@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createSession, getSession, updateSession, deleteSession, Session } from '../services/sessionService';
+import { createSession, getSession, updateSession, deleteSession, enrollMentee, Session } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
 import { verifyToken } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 interface SessionFormData {
   title: string;
@@ -45,6 +46,8 @@ const SessionPage: React.FC = () => {
   // Estado para la información del mentor
   const [mentorInfo, setMentorInfo] = useState<MentorInfo | null>(null);
   const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
+
+  const { user } = useAuth();
 
   // Función para obtener información del usuario por ID
   const getUserById = async (userId: number): Promise<MentorInfo | null> => {
@@ -209,6 +212,30 @@ const SessionPage: React.FC = () => {
     }
   };
 
+  const handleEnrol = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      // Obtener el ID del usuario actual
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para inscribir al usuario
+      await enrollMentee(parseInt(id), user.id);
+      
+      // Mostrar mensaje de éxito y redirigir al dashboard
+      alert(t('sessions.enrol_success'));
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error al inscribirse en la sesión:', error);
+      alert(t('sessions.enrol_error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -340,21 +367,47 @@ const SessionPage: React.FC = () => {
                   {t('common.back_to_dashboard')}
                 </Button>
                 
-                {/* Botones de eliminar y guardar a la derecha */}
+                {/* Botones de acción a la derecha */}
                 <div className="flex gap-2">
-                  {/* Botón de eliminar (solo en modo edición) */}
-                  {isEditMode && (
+                  {/* Si es el creador de la sesión o es admin, mostrar botones de editar/eliminar */}
+                  {isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
+                    <>
+                      {/* Botón de eliminar */}
+                      <Button
+                        color="failure"
+                        onClick={confirmDelete}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                      
+                      {/* Botón de guardar */}
+                      <Button
+                        color="success"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                      >
+                        {loading ? t('common.saving') : t('common.save')}
+                      </Button>
+                    </>
+                  ) : isEditMode ? (
+                    /* Si no es el creador pero está en modo edición, mostrar botón de inscribirse */
                     <Button
-                      color="failure"
-                      onClick={confirmDelete}
+                      color="success"
+                      onClick={handleEnrol}
+                      disabled={loading}
                     >
-                      {t('common.delete')}
+                      {loading ? t('common.processing') : t('common.enrol')}
+                    </Button>
+                  ) : (
+                    /* Si es modo creación, mostrar botón de crear */
+                    <Button
+                      color="success"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                    >
+                      {loading ? t('common.creating') : t('common.create')}
                     </Button>
                   )}
-                  
-                  <Button color="blue" type="submit" disabled={loading}>
-                    {loading ? t('common.saving') : t('common.save')}
-                  </Button>
                 </div>
               </div>
             </div>

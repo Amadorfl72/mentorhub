@@ -102,9 +102,20 @@ export const getMentorSessions = async (): Promise<Session[]> => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user.id) throw new Error('Usuario no autenticado');
     
+    // Aquí ya estamos filtrando por mentor_id, así que está bien
     return await fetchWithAuth(`/sessions?mentor_id=${user.id}`);
   } catch (error) {
     console.error('Error al obtener las sesiones:', error);
+    throw error;
+  }
+};
+
+// Obtener todas las sesiones (sin filtrar)
+export const getAllSessions = async (): Promise<Session[]> => {
+  try {
+    return await fetchWithAuth(`/sessions`);
+  } catch (error) {
+    console.error('Error al obtener todas las sesiones:', error);
     throw error;
   }
 };

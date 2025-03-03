@@ -42,9 +42,11 @@
     "allSessions": "Toutes les Sessions",
     "no_search_results": "Aucune session ne correspond à vos critères de recherche",
     "showing_results": "Affichage de {{from}} à {{to}} sur {{total}} résultats",
-    "no_results": "Aucune session trouvée"
+    "no_results": "Aucune session trouvée",
+    "enrol_success": "Inscription réussie à la session",
+    "enrol_error": "Erreur lors de l'inscription à la session"
   },
-  "welcome": "Bienvenue dans l'Application",
+  "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
   "login": {
     "button": "Se connecter avec Google",
@@ -90,7 +92,9 @@
     "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session ?",
     "search": "Rechercher des sessions...",
     "view": "Voir",
-    "back": "Retour au Tableau de Bord"
+    "back": "Retour au Tableau de Bord",
+    "enrol": "S'inscrire",
+    "processing": "Traitement en cours..."
   },
   "themeSwitch": {
     "easterEgg": {

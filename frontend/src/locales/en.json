@@ -43,7 +43,9 @@
     "allSessions": "All Sessions",
     "no_search_results": "No sessions match your search criteria",
     "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
-    "no_results": "No sessions found"
+    "no_results": "No sessions found",
+    "enrol_success": "Successfully enrolled in the session",
+    "enrol_error": "Error enrolling in the session"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -90,7 +92,9 @@
     "delete_confirmation": "Are you sure you want to delete this session?",
     "search": "Search sessions...",
     "view": "View",
-    "back": "Back to Dashboard"
+    "back": "Back to Dashboard",
+    "enrol": "Enrol",
+    "processing": "Processing..."
   },
   "themeSwitch": {
     "easterEgg": {

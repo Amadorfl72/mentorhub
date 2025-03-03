@@ -9,7 +9,23 @@ session_bp = Blueprint('session', __name__)
 @session_bp.route('/sessions', methods=['GET'])
 @login_required
 def get_sessions():
-    sessions = MentorshipSession.query.all()
+    # Obtener parámetros de consulta
+    mentor_id = request.args.get('mentor_id', type=int)
+    mentee_id = request.args.get('mentee_id', type=int)
+    
+    # Construir la consulta base
+    query = MentorshipSession.query
+    
+    # Aplicar filtros si se proporcionan
+    if mentor_id:
+        query = query.filter(MentorshipSession.mentor_id == mentor_id)
+    
+    if mentee_id:
+        # Filtrar por mentee_id usando la relación
+        query = query.join(session_mentees).filter(session_mentees.c.mentee_id == mentee_id)
+    
+    # Ejecutar la consulta
+    sessions = query.all()
     return jsonify([session.to_dict() for session in sessions])
 
 @session_bp.route('/sessions/<int:session_id>', methods=['GET'])

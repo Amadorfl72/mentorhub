@@ -20,8 +20,8 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
     return mentorsCache[mentorId];
   }
   
-  // Intentar obtener información del usuario actual si coincide con el ID del mentor
   try {
+    // Intentar obtener información del usuario actual si coincide con el ID del mentor
     const currentUserStr = localStorage.getItem('user');
     if (currentUserStr) {
       const currentUser = JSON.parse(currentUserStr);
@@ -42,9 +42,38 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
       }
     }
     
-    // Si no es el usuario actual, intentar obtener de la API
-    // Pero como tenemos problemas de CORS, usaremos un fallback
-    throw new Error('User not found in local storage');
+    // Si no es el usuario actual, obtener de la API
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+    
+    const response = await fetch(`${API_URL}/users/${mentorId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const userData = await response.json();
+    
+    const mentorInfo: MentorInfo = {
+      id: userData.id,
+      name: userData.username || userData.name || `Mentor ${mentorId}`,
+      email: userData.email,
+      photoUrl: userData.photoUrl,
+      photoBlob: userData.photo_data,
+      role: userData.role
+    };
+    
+    // Guardar en caché
+    mentorsCache[mentorId] = mentorInfo;
+    return mentorInfo;
   } catch (error) {
     console.error(`Error fetching mentor info for ID ${mentorId}:`, error);
     
