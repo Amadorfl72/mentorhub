@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { getMentorSessions, deleteSession, Session } from '../services/sessionService';
+import { getMentorSessions, getAllSessions, deleteSession, Session, getApprenticeSessions, unenrollMentee, enrollMentee } from '../services/sessionService';
 import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
 import { apiGet, testToken } from '../services/api';
@@ -52,6 +52,13 @@ const truncateDescription = (description: string, maxLength: number = 100) => {
     return description;
   }
   return description.substring(0, maxLength).trim();
+};
+
+// Función para verificar si una sesión ya ha pasado (mover esta función antes de loadSessions)
+const isSessionPast = (scheduledTime: string): boolean => {
+  const sessionDate = new Date(scheduledTime).getTime();
+  const now = new Date().getTime();
+  return sessionDate < now;
 };
 
 const DashboardPage = () => {
@@ -126,14 +133,40 @@ const DashboardPage = () => {
     try {
       setLoading(true);
       
-      // Obtener las sesiones del backend
-      const sessionsData = await getMentorSessions();
+      // Obtener las sesiones del usuario (como mentor)
+      const userMentorSessionsData = await getMentorSessions();
       
-      // Si hay sesiones, obtener información adicional de los usuarios
-      if (sessionsData.length > 0) {
+      // Obtener las sesiones del usuario (como mentee)
+      const userMenteeSessionsData = await getApprenticeSessions();
+      
+      // Combinar ambas listas de sesiones (eliminando duplicados por ID)
+      const sessionMap = new Map<number, Session>();
+      
+      // Primero añadir las sesiones como mentor
+      userMentorSessionsData.forEach(session => {
+        if (session.id) {
+          sessionMap.set(session.id, session);
+        }
+      });
+      
+      // Luego añadir las sesiones como mentee (si no existen ya)
+      userMenteeSessionsData.forEach(session => {
+        if (session.id && !sessionMap.has(session.id)) {
+          sessionMap.set(session.id, session);
+        }
+      });
+      
+      // Convertir el mapa a un array
+      const userSessionsData = Array.from(sessionMap.values());
+      
+      // Obtener todas las sesiones para la sección "Upcoming Sessions"
+      const allSessionsData = await getAllSessions();
+      
+      // Procesar las sesiones del usuario
+      if (userSessionsData.length > 0) {
         // Obtener IDs únicos de usuarios (mentores)
         const userIdsSet: Record<number, boolean> = {};
-        sessionsData.forEach(session => {
+        userSessionsData.forEach(session => {
           userIdsSet[session.mentor_id] = true;
           // Si la sesión tiene mentees, añadirlos también
           if (session.mentees && Array.isArray(session.mentees)) {
@@ -160,8 +193,8 @@ const DashboardPage = () => {
           }
         });
         
-        // Enriquecer las sesiones con información de usuario
-        const enrichedSessions = sessionsData.map(session => {
+        // Enriquecer las sesiones del usuario con información de usuario
+        const enrichedUserSessions = userSessionsData.map(session => {
           // Convertir los mentees a MentorInfo[]
           const menteeInfos: MentorInfo[] = [];
           if (session.mentees && Array.isArray(session.mentees)) {
@@ -182,9 +215,56 @@ const DashboardPage = () => {
           } as EnrichedSession;
         });
         
-        setSessions(enrichedSessions);
+        setSessions(enrichedUserSessions);
       } else {
         setSessions([]);
+      }
+      
+      // Procesar todas las sesiones para la sección "Upcoming Sessions"
+      if (allSessionsData.length > 0) {
+        // Obtener IDs únicos de mentores
+        const mentorIdsSet: Record<number, boolean> = {};
+        allSessionsData.forEach(session => {
+          mentorIdsSet[session.mentor_id] = true;
+        });
+        
+        const mentorIds = Object.keys(mentorIdsSet).map(id => parseInt(id));
+        
+        // Obtener información de todos los mentores en paralelo
+        const mentorsInfo = await Promise.all(
+          mentorIds.map(id => getUserInfo(id))
+        );
+        
+        // Crear un mapa de ID de mentor a información de mentor
+        const mentorInfoMap = new Map<number, MentorInfo>();
+        mentorsInfo.forEach(info => {
+          if (info) {
+            mentorInfoMap.set(info.id, info);
+          }
+        });
+        
+        // Enriquecer todas las sesiones con información de mentor
+        const enrichedAllSessions = allSessionsData.map(session => {
+          return {
+            ...session,
+            mentor: mentorInfoMap.get(session.mentor_id) || null,
+            mentees: []
+          } as EnrichedSession;
+        });
+        
+        // Filtrar solo las sesiones futuras y ordenarlas por fecha
+        const upcoming = enrichedAllSessions
+          .filter(session => !isSessionPast(session.scheduled_time))
+          .sort((a, b) => {
+            const dateA = new Date(a.scheduled_time).getTime();
+            const dateB = new Date(b.scheduled_time).getTime();
+            return dateA - dateB;
+          })
+          .slice(0, 3); // Limitar a 3 sesiones próximas
+        
+        setUpcomingSessions(upcoming);
+      } else {
+        setUpcomingSessions([]);
       }
       
       setLoading(false);
@@ -192,8 +272,9 @@ const DashboardPage = () => {
       console.error('Error loading sessions:', error);
       setLoading(false);
       setSessions([]);
+      setUpcomingSessions([]);
     }
-  }, [user, getUserInfo]);
+  }, [user, getUserInfo, isSessionPast]);
 
   // Efecto para verificar autenticación y cargar sesiones
   useEffect(() => {
@@ -211,6 +292,7 @@ const DashboardPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
+  // Mantener solo el efecto que obtiene las estadísticas de la API
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -244,34 +326,6 @@ const DashboardPage = () => {
 
     fetchStats();
   }, []);
-
-  // Añadir un useEffect para calcular las sesiones de esta semana
-  useEffect(() => {
-    if (sessions.length > 0) {
-      // Calcular el inicio de la semana actual (lunes)
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Ajustar para que el lunes sea el primer día
-      startOfWeek.setHours(0, 0, 0, 0);
-      
-      // Contar sesiones creadas esta semana
-      const sessionsThisWeek = sessions.filter(session => {
-        // Verificar si session.created_at existe
-        if (!session.created_at) return false;
-        
-        const createdAt = new Date(session.created_at);
-        return createdAt >= startOfWeek;
-      }).length;
-      
-      // Actualizar el estado con el nuevo valor
-      setStats(prevStats => ({
-        ...prevStats,
-        sessionsThisWeek
-      }));
-      
-      console.log('Sessions this week:', sessionsThisWeek, 'Start of week:', startOfWeek);
-    }
-  }, [sessions]);
 
   // Simplificar el useEffect que filtra las sesiones
   useEffect(() => {
@@ -376,13 +430,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Función para verificar si una sesión ya ha pasado
-  const isSessionPast = (scheduledTime: string): boolean => {
-    const sessionDate = new Date(scheduledTime).getTime();
-    const now = new Date().getTime();
-    return sessionDate < now;
-  };
-
   // Función para manejar el cambio en el switch de mostrar sesiones pasadas
   const handleTogglePastSessions = (value: boolean) => {
     setShowPastSessions(value);
@@ -441,6 +488,66 @@ const DashboardPage = () => {
         />
       </div>
     );
+  };
+
+  // Función para manejar la inscripción a una sesión
+  const handleEnrol = async (sessionId: number) => {
+    try {
+      setLoading(true);
+      
+      // Verificar que el usuario exista
+      if (!user || !user.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para inscribir al usuario
+      await enrollMentee(sessionId, user.id);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.enrol_success'), 'success');
+      
+      // Recargar las sesiones
+      loadSessions();
+    } catch (error) {
+      console.error('Error al inscribirse en la sesión:', error);
+      showNotification(t('sessions.enrol_error'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Añadir una función para verificar si el usuario está inscrito en la sesión
+  const isUserEnrolled = (session: EnrichedSession): boolean => {
+    if (!user || !session.mentees) return false;
+    
+    return session.mentees.some(mentee => mentee.id === user.id);
+  };
+
+  // Añadir la función handleUnenrol
+  const handleUnenrol = async (sessionId: number) => {
+    try {
+      setLoading(true);
+      
+      // Verificar que el usuario exista
+      if (!user || !user.id) {
+        throw new Error('Usuario no autenticado');
+        return;
+      }
+      
+      // Llamar al servicio para desuscribir al usuario
+      await unenrollMentee(sessionId, user.id);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.unenrol_success'), 'success');
+      
+      // Recargar las sesiones
+      loadSessions();
+    } catch (error) {
+      console.error('Error al desuscribirse de la sesión:', error);
+      showNotification(t('sessions.unenrol_error'), 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Si el usuario es 'pending', no renderizar el dashboard
@@ -521,8 +628,12 @@ const DashboardPage = () => {
                     <div className="text-xs text-blue-400 whitespace-nowrap mr-2">
                       {formatDateTime(session.scheduled_time)}
                     </div>
-                    <div className="font-medium text-sm text-white truncate">
+                    <div className="font-medium text-sm text-white truncate flex-grow">
                       {session.title}
+                    </div>
+                    {/* Mostrar el nombre del mentor */}
+                    <div className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                      {session.mentor?.name || t('sessions.unknown_mentor')}
                     </div>
                   </div>
                 ))}
@@ -709,31 +820,55 @@ const DashboardPage = () => {
                       {/* Información del mentor */}
                       <div className="flex items-center space-x-2">
                         <CachedImage 
-                          src={user?.photoUrl || ''}
-                          alt={user?.name || 'Mentor'}
+                          src={session.mentor?.photoUrl || ''}
+                          alt={session.mentor?.name || 'Mentor'}
                           className="w-6 h-6 rounded-full"
                           fallbackSrc="https://via.placeholder.com/40"
-                          useUserPhoto={true}
+                          userId={session.mentor_id}
                         />
-                        <span className="text-sm font-medium">{user?.name}</span>
+                        <span className="text-sm font-medium">{session.mentor?.name || t('sessions.unknown_mentor')}</span>
                       </div>
                       
                       {/* Botones de acción */}
                       <div className="flex gap-2">
-                        <Button 
-                          size="xs" 
-                          color="light"
-                          onClick={() => navigate(`/session/${session.id}`)}
-                        >
-                          {t('common.edit')}
-                        </Button>
-                        <Button 
-                          size="xs" 
-                          color="failure"
-                          onClick={() => confirmDelete(session.id!)}
-                        >
-                          {t('common.delete')}
-                        </Button>
+                        {/* Si el usuario es el mentor de la sesión, mostrar botones de editar y eliminar */}
+                        {session.mentor_id === user?.id ? (
+                          <>
+                            <Button 
+                              size="xs" 
+                              color="light"
+                              onClick={() => navigate(`/session/${session.id}`)}
+                            >
+                              {t('common.edit')}
+                            </Button>
+                            <Button 
+                              size="xs" 
+                              color="failure"
+                              onClick={() => confirmDelete(session.id!)}
+                            >
+                              {t('common.delete')}
+                            </Button>
+                          </>
+                        ) : (
+                          /* Si no es el mentor, mostrar botón apropiado según inscripción */
+                          isUserEnrolled(session) ? (
+                            <Button 
+                              size="xs" 
+                              color="warning"
+                              onClick={() => handleUnenrol(session.id!)}
+                            >
+                              {t('common.unenrol')}
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="xs" 
+                              color="success"
+                              onClick={() => handleEnrol(session.id!)}
+                            >
+                              {t('common.enrol')}
+                            </Button>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
@@ -756,13 +891,15 @@ const DashboardPage = () => {
                 ? t('sessions.no_sessions') 
                 : t('sessions.no_upcoming_sessions')}
             </p>
-            <Button 
-              color="blue" 
-              onClick={() => navigate('/session/new')}
-              className="mt-4"
-            >
-              {t('sessions.create_first_session')}
-            </Button>
+            {(user?.role === 'mentor' || user?.role === 'both') && (
+              <Button 
+                color="blue" 
+                onClick={() => navigate('/session/new')}
+                className="mt-4"
+              >
+                {t('sessions.create_first_session')}
+              </Button>
+            )}
           </div>
         )}
       </div>

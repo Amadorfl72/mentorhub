@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createSession, getSession, updateSession, deleteSession, Session } from '../services/sessionService';
+import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
 import { verifyToken } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
+import CachedImage from '../components/CachedImage';
 
 interface SessionFormData {
   title: string;
@@ -14,6 +16,8 @@ interface SessionFormData {
   scheduled_time: string;
   max_attendees: number;
   keywords: string;
+  mentees: { id: number }[];
+  mentor_id?: number;
 }
 
 interface MentorInfo {
@@ -22,6 +26,16 @@ interface MentorInfo {
   email: string;
   photoUrl?: string;
   role: string;
+}
+
+interface FormData {
+  title: string;
+  description: string;
+  mentor_id: number;
+  scheduled_time: string;
+  max_attendees: number;
+  keywords: string;
+  mentees?: { id: number }[];
 }
 
 const SessionPage: React.FC = () => {
@@ -37,6 +51,7 @@ const SessionPage: React.FC = () => {
     scheduled_time: '',
     max_attendees: 10,
     keywords: '',
+    mentees: [],
   });
   
   // Estado para el modal de confirmación de borrado
@@ -45,6 +60,8 @@ const SessionPage: React.FC = () => {
   // Estado para la información del mentor
   const [mentorInfo, setMentorInfo] = useState<MentorInfo | null>(null);
   const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
+
+  const { user } = useAuth();
 
   // Función para obtener información del usuario por ID
   const getUserById = async (userId: number): Promise<MentorInfo | null> => {
@@ -76,6 +93,8 @@ const SessionPage: React.FC = () => {
               scheduled_time: session.scheduled_time,
               max_attendees: session.max_attendees,
               keywords: session.keywords || '',
+              mentees: session.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+              mentor_id: session.mentor_id
             });
             
             // Obtener información del mentor
@@ -138,46 +157,45 @@ const SessionPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    setLoading(true);
+    if (!user) {
+      alert('Debes iniciar sesión para crear o editar una sesión');
+      return;
+    }
+    
     try {
-      // Usar la función verifyToken del servicio
-      const { valid } = await verifyToken();
-      if (!valid) {
-        throw new Error('Token inválido o expirado');
+      setLoading(true);
+      
+      // Formatear los datos del formulario
+      interface FormData {
+        title: string;
+        description: string;
+        mentor_id: number;
+        scheduled_time: string;
+        max_attendees: number;
+        keywords: string;
       }
       
-      // Obtener el ID del usuario actual del localStorage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      if (!user.id) {
-        throw new Error('No se pudo obtener el ID del usuario');
-      }
-      
-      // Formatear los datos según lo que espera el backend
-      const formattedData = {
+      const formattedData: FormData = {
         title: sessionData.title,
         description: sessionData.description,
-        mentor_id: parseInt(user.id),
+        mentor_id: user?.id || 0, // Usar 0 o algún valor por defecto si id es undefined
         scheduled_time: sessionData.scheduled_time,
         max_attendees: parseInt(sessionData.max_attendees.toString()),
-        keywords: sessionData.keywords
+        keywords: sessionData.keywords,
       };
       
-      // Imprimir los datos para depuración
-      console.log('Datos a enviar:', formattedData);
-      
       if (isEditMode && id) {
-        await updateSession(parseInt(id), formattedData);
+        // Usar el tipo correcto para updateSession
+        await updateSession(parseInt(id), formattedData as Partial<Session>);
       } else {
         await createSession(formattedData as any);
       }
       
-      // Redirigir al dashboard después de guardar
+      // Redirigir al dashboard después de crear/editar
       navigate('/dashboard');
-      
     } catch (error) {
       console.error('Error al guardar la sesión:', error);
-      // Aquí podrías mostrar un mensaje de error
+      alert('Error al guardar la sesión');
     } finally {
       setLoading(false);
     }
@@ -209,6 +227,72 @@ const SessionPage: React.FC = () => {
     }
   };
 
+  const handleEnrol = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      // Obtener el ID del usuario actual
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para inscribir al usuario
+      await enrollMentee(parseInt(id), user.id);
+      
+      // Actualizar el estado local para reflejar la inscripción
+      setSessionData(prevData => ({
+        ...prevData,
+        mentees: [...(prevData.mentees || []), { id: user.id as number }]
+      }));
+      
+      // Mostrar mensaje de éxito
+      alert(t('sessions.enrol_success'));
+    } catch (error) {
+      console.error('Error al inscribirse en la sesión:', error);
+      alert(t('sessions.enrol_error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Añadir una función para verificar si el usuario está inscrito en la sesión
+  const isUserEnrolled = (): boolean => {
+    if (!user || !sessionData?.mentees) return false;
+    
+    return sessionData.mentees.some(mentee => mentee.id === user.id);
+  };
+
+  // Añadir la función handleUnenrol
+  const handleUnenrol = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      // Obtener el ID del usuario actual
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para desuscribir al usuario
+      await unenrollMentee(parseInt(id), user.id);
+      
+      // Actualizar el estado local para reflejar la cancelación de inscripción
+      setSessionData(prevData => ({
+        ...prevData,
+        mentees: prevData.mentees?.filter(mentee => mentee.id !== user.id as number) || []
+      }));
+      
+      // Mostrar mensaje de éxito
+      alert(t('sessions.unenrol_success'));
+    } catch (error) {
+      console.error('Error al desuscribirse de la sesión:', error);
+      alert(t('sessions.unenrol_error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
@@ -228,11 +312,11 @@ const SessionPage: React.FC = () => {
                   <p className="text-sm text-gray-400">{t('sessions.mentor')}</p>
                   <p className="font-medium">{mentorInfo.name}</p>
                 </div>
-                <Avatar 
-                  img={mentorInfo.photoUrl || "https://via.placeholder.com/40"} 
-                  rounded 
-                  size="md"
+                <CachedImage 
+                  src={mentorInfo.photoUrl || "https://via.placeholder.com/40"}
                   alt={mentorInfo.name}
+                  className="h-10 w-10 rounded-full"
+                  userId={sessionData.mentor_id}
                 />
               </div>
             )}
@@ -340,21 +424,57 @@ const SessionPage: React.FC = () => {
                   {t('common.back_to_dashboard')}
                 </Button>
                 
-                {/* Botones de eliminar y guardar a la derecha */}
+                {/* Botones de acción a la derecha */}
                 <div className="flex gap-2">
-                  {/* Botón de eliminar (solo en modo edición) */}
-                  {isEditMode && (
+                  {/* Si es el creador de la sesión o es admin, mostrar botones de editar/eliminar */}
+                  {isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
+                    <>
+                      {/* Botón de eliminar */}
+                      <Button
+                        color="failure"
+                        onClick={confirmDelete}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                      
+                      {/* Botón de guardar */}
+                      <Button
+                        color="success"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                      >
+                        {loading ? t('common.saving') : t('common.save')}
+                      </Button>
+                    </>
+                  ) : isEditMode ? (
+                    /* Si no es el creador pero está en modo edición, mostrar botón según inscripción */
+                    isUserEnrolled() ? (
+                      <Button
+                        color="warning"
+                        onClick={handleUnenrol}
+                        disabled={loading}
+                      >
+                        {loading ? t('common.processing') : t('common.unenrol')}
+                      </Button>
+                    ) : (
+                      <Button
+                        color="success"
+                        onClick={handleEnrol}
+                        disabled={loading}
+                      >
+                        {loading ? t('common.processing') : t('common.enrol')}
+                      </Button>
+                    )
+                  ) : (
+                    /* Si es modo creación, mostrar botón de crear */
                     <Button
-                      color="failure"
-                      onClick={confirmDelete}
+                      color="success"
+                      onClick={handleSubmit}
+                      disabled={loading}
                     >
-                      {t('common.delete')}
+                      {loading ? t('common.creating') : t('common.create')}
                     </Button>
                   )}
-                  
-                  <Button color="blue" type="submit" disabled={loading}>
-                    {loading ? t('common.saving') : t('common.save')}
-                  </Button>
                 </div>
               </div>
             </div>

@@ -102,9 +102,20 @@ export const getMentorSessions = async (): Promise<Session[]> => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user.id) throw new Error('Usuario no autenticado');
     
+    // Aquí ya estamos filtrando por mentor_id, así que está bien
     return await fetchWithAuth(`/sessions?mentor_id=${user.id}`);
   } catch (error) {
     console.error('Error al obtener las sesiones:', error);
+    throw error;
+  }
+};
+
+// Obtener todas las sesiones (sin filtrar)
+export const getAllSessions = async (): Promise<Session[]> => {
+  try {
+    return await fetchWithAuth(`/sessions`);
+  } catch (error) {
+    console.error('Error al obtener todas las sesiones:', error);
     throw error;
   }
 };
@@ -177,6 +188,19 @@ export const enrollMentee = async (sessionId: number, menteeId: number): Promise
     });
   } catch (error) {
     console.error('Error al inscribir al aprendiz:', error);
+    throw error;
+  }
+};
+
+// Desuscribir a un aprendiz de una sesión
+export const unenrollMentee = async (sessionId: number, menteeId: number): Promise<any> => {
+  try {
+    return await fetchWithAuth(`/sessions/${sessionId}/unenrol`, {
+      method: 'POST',
+      body: JSON.stringify({ mentee_id: menteeId })
+    });
+  } catch (error) {
+    console.error('Error al desuscribir al aprendiz:', error);
     throw error;
   }
 }; 

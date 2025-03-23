@@ -9,7 +9,23 @@ session_bp = Blueprint('session', __name__)
 @session_bp.route('/sessions', methods=['GET'])
 @login_required
 def get_sessions():
-    sessions = MentorshipSession.query.all()
+    # Obtener parámetros de consulta
+    mentor_id = request.args.get('mentor_id', type=int)
+    mentee_id = request.args.get('mentee_id', type=int)
+    
+    # Construir la consulta base
+    query = MentorshipSession.query
+    
+    # Aplicar filtros si se proporcionan
+    if mentor_id:
+        query = query.filter(MentorshipSession.mentor_id == mentor_id)
+    
+    if mentee_id:
+        # Filtrar por mentee_id usando la relación
+        query = query.join(session_mentees).filter(session_mentees.c.mentee_id == mentee_id)
+    
+    # Ejecutar la consulta
+    sessions = query.all()
     return jsonify([session.to_dict() for session in sessions])
 
 @session_bp.route('/sessions/<int:session_id>', methods=['GET'])
@@ -80,3 +96,25 @@ def enrol_mentee(session_id):
     db.session.commit()
 
     return jsonify({"message": f"Mentee {mentee.username} enrolled in session {session.title}"}), 200
+
+@session_bp.route('/sessions/<int:session_id>/unenrol', methods=['POST'])
+@login_required
+def unenrol_mentee(session_id):
+    session = MentorshipSession.query.get_or_404(session_id)
+    data = request.json
+    mentee_id = data.get('mentee_id')
+
+    if not mentee_id:
+        return jsonify({"error": "Mentee ID is required"}), 400
+
+    mentee = User.query.get_or_404(mentee_id)
+
+    # Verificar si el mentee está inscrito
+    if mentee not in session.mentees:
+        return jsonify({"error": "Mentee is not enrolled in this session"}), 400
+
+    # Eliminar el mentee de la sesión
+    session.mentees.remove(mentee)
+    db.session.commit()
+
+    return jsonify({"message": f"Mentee {mentee.username} unenrolled from session {session.title}"}), 200
