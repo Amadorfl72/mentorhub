@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
-import { HiX, HiArrowLeft, HiExclamation } from 'react-icons/hi';
+import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
@@ -516,6 +516,43 @@ const SessionPage: React.FC = () => {
                 </div>
               </div>
               
+              {/* Detalles de fecha y hora */}
+              <div className="flex flex-col md:flex-row justify-between gap-4 my-5">
+                <div className="flex items-center p-3 bg-gray-800 rounded-lg">
+                  <HiCalendar className="h-6 w-6 text-blue-500 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-300 font-semibold">
+                      {t('sessions.scheduled_date')}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {sessionData.scheduled_time ? new Date(sessionData.scheduled_time).toLocaleDateString() : '-'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center p-3 bg-gray-800 rounded-lg">
+                  <HiClock className="h-6 w-6 text-purple-500 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-300 font-semibold">
+                      {t('sessions.scheduled_time')}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {sessionData.scheduled_time ? new Date(sessionData.scheduled_time).toLocaleTimeString() : '-'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center p-3 bg-gray-800 rounded-lg">
+                  <HiUsers className="h-6 w-6 text-green-500 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-300 font-semibold">
+                      {t('sessions.attendees')}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {sessionData.mentees ? sessionData.mentees.length : 0}/{sessionData.max_attendees}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               {/* Sección de información de la sesión */}
               <div className="mb-4 p-4 bg-gray-800 rounded-lg">
                 {/* Información de mentees */}
@@ -549,13 +586,6 @@ const SessionPage: React.FC = () => {
                           <span className="text-sm text-gray-500">{t('sessions.no_attendees')}</span>
                         )}
                       </div>
-                    </div>
-                    
-                    {/* Contador de plazas */}
-                    <div className="text-sm text-gray-400">
-                      <span className="font-medium text-blue-400">{sessionData.mentees ? sessionData.mentees.length : 0}</span>
-                      <span>/</span>
-                      <span>{sessionData.max_attendees}</span> {t('sessions.places')}
                     </div>
                   </div>
                 </div>

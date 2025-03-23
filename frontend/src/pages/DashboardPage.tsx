@@ -953,7 +953,7 @@ const DashboardPage = () => {
                       </div>
                       <div className="flex items-center">
                         <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
-                        <span>Max: {session.max_attendees}</span>
+                        <span>{session.mentees ? session.mentees.length : 0}/{session.max_attendees}</span>
                       </div>
                     </div>
                     
@@ -1049,11 +1049,6 @@ const DashboardPage = () => {
                             <span className="text-xs text-gray-500">{t('sessions.no_attendees')}</span>
                           )}
                         </div>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        <span className="font-medium text-blue-400">{session.mentees ? session.mentees.length : 0}</span>
-                        <span>/</span>
-                        <span>{session.max_attendees}</span> {t('sessions.places')}
                       </div>
                     </div>
                   </div>
