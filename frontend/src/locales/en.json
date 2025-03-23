@@ -45,7 +45,9 @@
     "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
     "no_results": "No sessions found",
     "enrol_success": "Successfully enrolled in the session",
-    "enrol_error": "Error enrolling in the session"
+    "enrol_error": "Error enrolling in the session",
+    "unenrol_success": "Successfully unenrolled from the session",
+    "unenrol_error": "Error unenrolling from the session"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -94,6 +96,7 @@
     "view": "View",
     "back": "Back to Dashboard",
     "enrol": "Enrol",
+    "unenrol": "Unenrol",
     "processing": "Processing..."
   },
   "themeSwitch": {

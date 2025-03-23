@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee } from '../services/sessionService';
+import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee } from '../services/sessionService';
 import CachedImage from '../components/CachedImage';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
 
@@ -78,56 +78,57 @@ const AllSessionsPage = () => {
     };
   };
 
+  // Mover la definición de loadSessions fuera del useEffect
+  const loadSessions = async () => {
+    setLoading(true);
+    try {
+      // Usar getAllSessions en lugar de getMentorSessions para obtener todas las sesiones
+      const allSessions = await getAllSessions();
+      
+      // Ordenar las sesiones por fecha (las más próximas primero)
+      const sortedSessions = allSessions.sort((a, b) => {
+        const dateA = new Date(a.scheduled_time).getTime();
+        const dateB = new Date(b.scheduled_time).getTime();
+        return dateA - dateB;
+      });
+      
+      setSessions(sortedSessions);
+      
+      // Obtener IDs de mentores únicos
+      const mentorIds = sortedSessions
+        .map(session => session.mentor_id)
+        .filter((id): id is number => id !== undefined);
+      
+      // Cargar información de mentores usando getMentorsInfo
+      if (mentorIds.length > 0) {
+        try {
+          const mentorsData = await getMentorsInfo(mentorIds);
+          setMentors(mentorsData);
+        } catch (error) {
+          console.error('Error loading mentors info:', error);
+          
+          // En caso de error, crear información genérica para todos los mentores
+          const fallbackMentorsData: Record<number, MentorInfo> = {};
+          for (const mentorId of mentorIds) {
+            fallbackMentorsData[mentorId] = {
+              id: mentorId,
+              name: `Mentor ${mentorId}`,
+              photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
+            };
+          }
+          setMentors(fallbackMentorsData);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar las sesiones:', error);
+      showNotification(t('sessions.load_error'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Cargar las sesiones al montar el componente
   useEffect(() => {
-    const loadSessions = async () => {
-      setLoading(true);
-      try {
-        // Usar getAllSessions en lugar de getMentorSessions para obtener todas las sesiones
-        const allSessions = await getAllSessions();
-        
-        // Ordenar las sesiones por fecha (las más próximas primero)
-        const sortedSessions = allSessions.sort((a, b) => {
-          const dateA = new Date(a.scheduled_time).getTime();
-          const dateB = new Date(b.scheduled_time).getTime();
-          return dateA - dateB;
-        });
-        
-        setSessions(sortedSessions);
-        
-        // Obtener IDs de mentores únicos
-        const mentorIds = sortedSessions
-          .map(session => session.mentor_id)
-          .filter((id): id is number => id !== undefined);
-        
-        // Cargar información de mentores usando getMentorsInfo
-        if (mentorIds.length > 0) {
-          try {
-            const mentorsData = await getMentorsInfo(mentorIds);
-            setMentors(mentorsData);
-          } catch (error) {
-            console.error('Error loading mentors info:', error);
-            
-            // En caso de error, crear información genérica para todos los mentores
-            const fallbackMentorsData: Record<number, MentorInfo> = {};
-            for (const mentorId of mentorIds) {
-              fallbackMentorsData[mentorId] = {
-                id: mentorId,
-                name: `Mentor ${mentorId}`,
-                photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
-              };
-            }
-            setMentors(fallbackMentorsData);
-          }
-        }
-      } catch (error) {
-        console.error('Error al cargar las sesiones:', error);
-        showNotification(t('sessions.load_error'), 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadSessions();
   }, [t]);
 
@@ -269,9 +270,45 @@ const AllSessionsPage = () => {
       
       // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
+      
+      // Recargar las sesiones para actualizar el estado de inscripción
+      loadSessions();
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
       showNotification(t('sessions.enrol_error'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Añadir una función para verificar si el usuario está inscrito en la sesión
+  const isUserEnrolled = (session: Session): boolean => {
+    if (!user || !session.mentees) return false;
+    
+    return session.mentees.some(mentee => mentee.id === user.id);
+  };
+
+  // Añadir la función handleUnenrol
+  const handleUnenrol = async (sessionId: number) => {
+    try {
+      setLoading(true);
+      // Obtener el ID del usuario actual
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!currentUser.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para desuscribir al usuario
+      await unenrollMentee(sessionId, currentUser.id);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.unenrol_success'), 'success');
+      
+      // Recargar las sesiones
+      loadSessions();
+    } catch (error) {
+      console.error('Error al desuscribirse de la sesión:', error);
+      showNotification(t('sessions.unenrol_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -492,37 +529,13 @@ const AllSessionsPage = () => {
                       <div className="flex items-center mt-3 mb-4">
                         <div className="flex-shrink-0">
                           {mentorInfo && (
-                            mentorInfo.photoBlob ? (
-                              <img 
-                                src={mentorInfo.photoBlob} 
-                                alt={mentorInfo.name}
-                                className="w-8 h-8 rounded-full"
-                                onError={(e) => {
-                                  // Si falla la carga de la imagen, usar una imagen de fallback
-                                  const target = e.target as HTMLImageElement;
-                                  target.onerror = null; // Evitar bucle infinito
-                                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`;
-                                }}
-                              />
-                            ) : mentorInfo.photoUrl ? (
-                              <img 
-                                src={mentorInfo.photoUrl} 
-                                alt={mentorInfo.name}
-                                className="w-8 h-8 rounded-full"
-                                onError={(e) => {
-                                  // Si falla la carga de la imagen, usar una imagen de fallback
-                                  const target = e.target as HTMLImageElement;
-                                  target.onerror = null; // Evitar bucle infinito
-                                  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`;
-                                }}
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-                                <span className="text-xs font-medium text-white">
-                                  {mentorInfo.name.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                            )
+                            <CachedImage 
+                              src={mentorInfo.photoUrl || ''}
+                              alt={mentorInfo.name}
+                              className="w-8 h-8 rounded-full"
+                              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`}
+                              userId={session.mentor_id}
+                            />
                           )}
                         </div>
                         <div className="ml-3">
@@ -561,14 +574,24 @@ const AllSessionsPage = () => {
                             </Button>
                           </>
                         ) : (
-                          /* Si no es el mentor ni admin, mostrar botón de inscribirse */
-                          <Button 
-                            size="xs" 
-                            color="success"
-                            onClick={() => handleEnrol(session.id!)}
-                          >
-                            {t('common.enrol')}
-                          </Button>
+                          /* Si no es el mentor ni admin, mostrar botón según inscripción */
+                          isUserEnrolled(session) ? (
+                            <Button 
+                              size="xs" 
+                              color="warning"
+                              onClick={() => handleUnenrol(session.id!)}
+                            >
+                              {t('common.unenrol')}
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="xs" 
+                              color="success"
+                              onClick={() => handleEnrol(session.id!)}
+                            >
+                              {t('common.enrol')}
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>

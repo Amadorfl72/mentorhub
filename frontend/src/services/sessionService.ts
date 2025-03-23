@@ -190,4 +190,17 @@ export const enrollMentee = async (sessionId: number, menteeId: number): Promise
     console.error('Error al inscribir al aprendiz:', error);
     throw error;
   }
+};
+
+// Desuscribir a un aprendiz de una sesión
+export const unenrollMentee = async (sessionId: number, menteeId: number): Promise<any> => {
+  try {
+    return await fetchWithAuth(`/sessions/${sessionId}/unenrol`, {
+      method: 'POST',
+      body: JSON.stringify({ mentee_id: menteeId })
+    });
+  } catch (error) {
+    console.error('Error al desuscribir al aprendiz:', error);
+    throw error;
+  }
 }; 

@@ -44,7 +44,9 @@
     "showing_results": "Mostrando {{from}} a {{to}} de {{total}} resultados",
     "no_results": "No hay sesiones encontradas",
     "enrol_success": "Inscripción exitosa en la sesión",
-    "enrol_error": "Error al inscribirse en la sesión"
+    "enrol_error": "Error al inscribirse en la sesión",
+    "unenrol_success": "Desuscripción exitosa de la sesión",
+    "unenrol_error": "Error al desuscribirse de la sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
@@ -94,6 +96,7 @@
     "view": "Ver",
     "back": "Volver al Dashboard",
     "enrol": "Inscribirse",
+    "unenrol": "Desuscribirse",
     "processing": "Procesando..."
   },
   "themeSwitch": {

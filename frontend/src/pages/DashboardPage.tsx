@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { getMentorSessions, getAllSessions, deleteSession, Session } from '../services/sessionService';
+import { getMentorSessions, getAllSessions, deleteSession, Session, getApprenticeSessions, unenrollMentee, enrollMentee } from '../services/sessionService';
 import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
 import { apiGet, testToken } from '../services/api';
@@ -134,7 +134,30 @@ const DashboardPage = () => {
       setLoading(true);
       
       // Obtener las sesiones del usuario (como mentor)
-      const userSessionsData = await getMentorSessions();
+      const userMentorSessionsData = await getMentorSessions();
+      
+      // Obtener las sesiones del usuario (como mentee)
+      const userMenteeSessionsData = await getApprenticeSessions();
+      
+      // Combinar ambas listas de sesiones (eliminando duplicados por ID)
+      const sessionMap = new Map<number, Session>();
+      
+      // Primero añadir las sesiones como mentor
+      userMentorSessionsData.forEach(session => {
+        if (session.id) {
+          sessionMap.set(session.id, session);
+        }
+      });
+      
+      // Luego añadir las sesiones como mentee (si no existen ya)
+      userMenteeSessionsData.forEach(session => {
+        if (session.id && !sessionMap.has(session.id)) {
+          sessionMap.set(session.id, session);
+        }
+      });
+      
+      // Convertir el mapa a un array
+      const userSessionsData = Array.from(sessionMap.values());
       
       // Obtener todas las sesiones para la sección "Upcoming Sessions"
       const allSessionsData = await getAllSessions();
@@ -304,40 +327,6 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // Modificar el useEffect que calcula las sesiones de esta semana
-  useEffect(() => {
-    if (sessions.length > 0) {
-      // Calcular el inicio de la semana actual (lunes)
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Ajustar para que el lunes sea el primer día
-      startOfWeek.setHours(0, 0, 0, 0);
-      
-      // Contar sesiones creadas esta semana
-      const localSessionsThisWeek = sessions.filter(session => {
-        // Verificar si session.created_at existe
-        if (!session.created_at) return false;
-        
-        const createdAt = new Date(session.created_at);
-        return createdAt >= startOfWeek;
-      }).length;
-      
-      // Solo actualizar si el valor calculado es mayor que el actual
-      setStats(prevStats => {
-        if (localSessionsThisWeek > prevStats.sessionsThisWeek) {
-          console.log('Updating sessions this week from local calculation:', localSessionsThisWeek);
-          return {
-            ...prevStats,
-            sessionsThisWeek: localSessionsThisWeek
-          };
-        }
-        return prevStats;
-      });
-      
-      console.log('Local sessions this week:', localSessionsThisWeek, 'Start of week:', startOfWeek);
-    }
-  }, [sessions]);
-
   // Simplificar el useEffect que filtra las sesiones
   useEffect(() => {
     let filtered = [...sessions];
@@ -505,12 +494,57 @@ const DashboardPage = () => {
   const handleEnrol = async (sessionId: number) => {
     try {
       setLoading(true);
-      // Por ahora, solo mostramos una notificación
-      // La implementación completa se hará después
+      
+      // Verificar que el usuario exista
+      if (!user || !user.id) {
+        throw new Error('Usuario no autenticado');
+      }
+      
+      // Llamar al servicio para inscribir al usuario
+      await enrollMentee(sessionId, user.id);
+      
+      // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
+      
+      // Recargar las sesiones
+      loadSessions();
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
       showNotification(t('sessions.enrol_error'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Añadir una función para verificar si el usuario está inscrito en la sesión
+  const isUserEnrolled = (session: EnrichedSession): boolean => {
+    if (!user || !session.mentees) return false;
+    
+    return session.mentees.some(mentee => mentee.id === user.id);
+  };
+
+  // Añadir la función handleUnenrol
+  const handleUnenrol = async (sessionId: number) => {
+    try {
+      setLoading(true);
+      
+      // Verificar que el usuario exista
+      if (!user || !user.id) {
+        throw new Error('Usuario no autenticado');
+        return;
+      }
+      
+      // Llamar al servicio para desuscribir al usuario
+      await unenrollMentee(sessionId, user.id);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.unenrol_success'), 'success');
+      
+      // Recargar las sesiones
+      loadSessions();
+    } catch (error) {
+      console.error('Error al desuscribirse de la sesión:', error);
+      showNotification(t('sessions.unenrol_error'), 'error');
     } finally {
       setLoading(false);
     }
@@ -790,7 +824,7 @@ const DashboardPage = () => {
                           alt={session.mentor?.name || 'Mentor'}
                           className="w-6 h-6 rounded-full"
                           fallbackSrc="https://via.placeholder.com/40"
-                          useUserPhoto={true}
+                          userId={session.mentor_id}
                         />
                         <span className="text-sm font-medium">{session.mentor?.name || t('sessions.unknown_mentor')}</span>
                       </div>
@@ -816,14 +850,24 @@ const DashboardPage = () => {
                             </Button>
                           </>
                         ) : (
-                          /* Si no es el mentor, mostrar botón de inscribirse */
-                          <Button 
-                            size="xs" 
-                            color="success"
-                            onClick={() => handleEnrol(session.id!)}
-                          >
-                            {t('common.enrol')}
-                          </Button>
+                          /* Si no es el mentor, mostrar botón apropiado según inscripción */
+                          isUserEnrolled(session) ? (
+                            <Button 
+                              size="xs" 
+                              color="warning"
+                              onClick={() => handleUnenrol(session.id!)}
+                            >
+                              {t('common.unenrol')}
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="xs" 
+                              color="success"
+                              onClick={() => handleEnrol(session.id!)}
+                            >
+                              {t('common.enrol')}
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>

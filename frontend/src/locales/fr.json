@@ -44,7 +44,9 @@
     "showing_results": "Affichage de {{from}} à {{to}} sur {{total}} résultats",
     "no_results": "Aucune session trouvée",
     "enrol_success": "Inscription réussie à la session",
-    "enrol_error": "Erreur lors de l'inscription à la session"
+    "enrol_error": "Erreur lors de l'inscription à la session",
+    "unenrol_success": "Désinscription réussie de la session",
+    "unenrol_error": "Erreur lors de la désinscription de la session"
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
@@ -94,6 +96,7 @@
     "view": "Voir",
     "back": "Retour au Tableau de Bord",
     "enrol": "S'inscrire",
+    "unenrol": "Se désinscrire",
     "processing": "Traitement en cours..."
   },
   "themeSwitch": {
