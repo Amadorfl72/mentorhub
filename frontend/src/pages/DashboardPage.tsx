@@ -23,6 +23,7 @@ import { getMentorSessions, getAllSessions, deleteSession, Session, getApprentic
 import { fetchData } from '../services/apiService';
 import CachedImage from '../components/CachedImage';
 import { apiGet, testToken } from '../services/api';
+import { User } from '../context/AuthContext';
 
 interface NotificationState {
   show: boolean;
@@ -147,6 +148,9 @@ const DashboardPage = () => {
     try {
       setLoading(true);
       
+      // Obtener todas las sesiones para la sección "Upcoming Sessions"
+      const allSessionsData = await getAllSessions();
+      
       // Obtener las sesiones del usuario (como mentor)
       const userMentorSessionsData = await getMentorSessions();
       
@@ -157,44 +161,64 @@ const DashboardPage = () => {
       const menteeSessionIds = new Set(userMenteeSessionsData.map(session => session.id).filter(Boolean) as number[]);
       setUserMenteeSessionIds(menteeSessionIds);
       
+      // Crear un mapa combinado para todas las sesiones
+      // Esto nos permitirá tener la información completa de mentees
+      const allSessionsMap = new Map<number, Session>();
+      
+      // Añadir todas las sesiones al mapa
+      allSessionsData.forEach(session => {
+        if (session.id) {
+          allSessionsMap.set(session.id, session);
+        }
+      });
+      
       // Combinar ambas listas de sesiones (eliminando duplicados por ID)
-      const sessionMap = new Map<number, Session>();
+      const userSessionMap = new Map<number, Session>();
       
       // Primero añadir las sesiones como mentor
       userMentorSessionsData.forEach(session => {
         if (session.id) {
-          sessionMap.set(session.id, session);
+          // Obtener la sesión del mapa global si existe (tendrá la lista completa de mentees)
+          const completeSession = allSessionsMap.get(session.id) || session;
+          userSessionMap.set(session.id, completeSession);
         }
       });
       
       // Luego añadir las sesiones como mentee (si no existen ya)
       userMenteeSessionsData.forEach(session => {
-        if (session.id && !sessionMap.has(session.id)) {
-          sessionMap.set(session.id, session);
+        if (session.id) {
+          // Obtener la sesión del mapa global si existe (tendrá la lista completa de mentees)
+          const completeSession = allSessionsMap.get(session.id) || session;
+          userSessionMap.set(session.id, completeSession);
         }
       });
       
       // Convertir el mapa a un array
-      const userSessionsData = Array.from(sessionMap.values());
-      
-      // Obtener todas las sesiones para la sección "Upcoming Sessions"
-      const allSessionsData = await getAllSessions();
+      const userSessionsData = Array.from(userSessionMap.values());
       
       // Procesar las sesiones del usuario
       if (userSessionsData.length > 0) {
-        // Obtener IDs únicos de usuarios (mentores)
+        // Obtener IDs únicos de usuarios (mentores y mentees)
         const userIdsSet: Record<number, boolean> = {};
         userSessionsData.forEach(session => {
-          userIdsSet[session.mentor_id] = true;
+          if (session.mentor_id) {
+            userIdsSet[session.mentor_id] = true;
+          }
+          
           // Si la sesión tiene mentees, añadirlos también
           if (session.mentees && Array.isArray(session.mentees)) {
             session.mentees.forEach(mentee => {
               if (mentee.id) {
-                userIdsSet[mentee.id] = true;
+                userIdsSet[Number(mentee.id)] = true;
               }
             });
           }
         });
+        
+        // Asegurarse de que el usuario actual está en la lista de IDs
+        if (user.id) {
+          userIdsSet[Number(user.id)] = true;
+        }
         
         const userIds = Object.keys(userIdsSet).map(id => parseInt(id));
         
@@ -211,24 +235,59 @@ const DashboardPage = () => {
           }
         });
         
+        // Asegurarse de que el usuario actual está en el mapa de información
+        if (user.id) {
+          if (!userInfoMap.has(Number(user.id))) {
+            userInfoMap.set(Number(user.id), {
+              id: Number(user.id),
+              name: user.name || '',
+              email: user.email || '',
+              photoUrl: user.photoUrl || '',
+              photoData: user.photoData || '',
+              role: user.role || 'mentee'
+            });
+          }
+        }
+        
         // Enriquecer las sesiones del usuario con información de usuario
         const enrichedUserSessions = userSessionsData.map(session => {
           // Convertir los mentees a MentorInfo[]
           const menteeInfos: MentorInfo[] = [];
+          
           if (session.mentees && Array.isArray(session.mentees)) {
             session.mentees.forEach(mentee => {
               if (mentee.id) {
-                const menteeInfo = userInfoMap.get(mentee.id);
+                const menteeId = Number(mentee.id);
+                const menteeInfo = userInfoMap.get(menteeId);
+                
                 if (menteeInfo) {
                   menteeInfos.push(menteeInfo);
+                } else {
+                  // Si no encontramos la info, creamos una básica a partir del mentee
+                  menteeInfos.push({
+                    id: menteeId,
+                    name: mentee.name || `User ${menteeId}`,
+                    email: mentee.email || '',
+                    photoUrl: mentee.photoUrl || '',
+                    role: mentee.role || 'mentee'
+                  });
                 }
               }
             });
           }
           
+          // Adicionalmente, si el usuario actual está inscrito pero no está en la lista de mentees,
+          // debemos agregarlo manualmente
+          if (menteeSessionIds.has(session.id!) && !menteeInfos.some(m => m.id === Number(user.id))) {
+            const userInfo = userInfoMap.get(Number(user.id));
+            if (userInfo) {
+              menteeInfos.push(userInfo);
+            }
+          }
+          
           return {
             ...session,
-            mentor: userInfoMap.get(session.mentor_id) || null,
+            mentor: session.mentor_id ? userInfoMap.get(session.mentor_id) || null : null,
             mentees: menteeInfos
           } as EnrichedSession;
         });
@@ -243,7 +302,9 @@ const DashboardPage = () => {
         // Obtener IDs únicos de mentores
         const mentorIdsSet: Record<number, boolean> = {};
         allSessionsData.forEach(session => {
-          mentorIdsSet[session.mentor_id] = true;
+          if (session.mentor_id) {
+            mentorIdsSet[session.mentor_id] = true;
+          }
         });
         
         const mentorIds = Object.keys(mentorIdsSet).map(id => parseInt(id));
@@ -265,8 +326,9 @@ const DashboardPage = () => {
         const enrichedAllSessions = allSessionsData.map(session => {
           return {
             ...session,
-            mentor: mentorInfoMap.get(session.mentor_id) || null,
-            mentees: []
+            mentor: session.mentor_id ? mentorInfoMap.get(session.mentor_id) || null : null,
+            // No añadimos mentees aquí porque no son necesarios para la sección "Upcoming Sessions"
+            mentees: session.mentees || []
           } as EnrichedSession;
         });
         
@@ -523,10 +585,18 @@ const DashboardPage = () => {
       // Llamar al servicio para inscribir al usuario
       await enrollMentee(sessionId, userId);
       
+      // Actualizar el conjunto de IDs de sesiones del usuario como mentee
+      setUserMenteeSessionIds(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.add(sessionId);
+        return newSet;
+      });
+      
       // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
       
       // Recargar las sesiones para obtener datos actualizados
+      // Esto es importante para asegurar que todos los datos estén sincronizados
       loadSessions();
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
@@ -544,18 +614,18 @@ const DashboardPage = () => {
     
     const userId = Number(user.id);
     
-    // Verificar primero si es una sesión que el usuario está viendo como mentee
-    // (las sesiones obtenidas de getApprenticeSessions)
-    if (session.mentees) {
-      const enrolledAsMentee = session.mentees.some(mentee => Number(mentee.id) === userId);
-      if (enrolledAsMentee) {
-        return true;
-      }
+    // Verificar primero si el ID de la sesión está en el conjunto de sesiones del mentee
+    if (session.id && userMenteeSessionIds.has(session.id)) {
+      return true;
     }
     
-    // Si la sesión se encontró en userMenteeSessionsData, entonces el usuario está inscrito
-    if (userMenteeSessionIds.has(session.id!)) {
-      return true;
+    // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
+    if (session.mentees && session.mentees.length > 0) {
+      return session.mentees.some(mentee => {
+        // Asegurarse de comparar números con números para evitar problemas con tipos
+        const menteeId = Number(mentee.id);
+        return menteeId === userId;
+      });
     }
     
     return false;
@@ -599,6 +669,13 @@ const DashboardPage = () => {
       
       // Llamar al servicio para desuscribir al usuario
       await unenrollMentee(sessionId, userId);
+      
+      // Eliminar la ID de sesión del conjunto de sesiones del usuario como mentee
+      setUserMenteeSessionIds(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.delete(sessionId);
+        return newSet;
+      });
       
       // Mostrar notificación de éxito
       showNotification(t('sessions.unenrol_success'), 'success');
@@ -888,7 +965,7 @@ const DashboardPage = () => {
                           src={session.mentor?.photoUrl || ''}
                           alt={session.mentor?.name || 'Mentor'}
                           className="w-6 h-6 rounded-full"
-                          fallbackSrc="https://via.placeholder.com/40"
+                          fallbackSrc="/images/default-avatar.svg"
                           userId={session.mentor_id}
                         />
                         <span className="text-sm font-medium">{session.mentor?.name || t('sessions.unknown_mentor')}</span>
@@ -941,6 +1018,42 @@ const DashboardPage = () => {
                             </span>
                           )
                         )}
+                      </div>
+                    </div>
+
+                    {/* Añadir fila de mentees y plazas disponibles */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-700">
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-400 mr-2">{t('sessions.attendees')}:</span>
+                        <div className="flex -space-x-2">
+                          {session.mentees && session.mentees.length > 0 ? (
+                            <>
+                              {session.mentees.slice(0, 5).map((mentee, index) => (
+                                <div key={`${mentee.id}-${index}`} className="relative z-10" style={{ zIndex: 5 - index }}>
+                                  <CachedImage 
+                                    src={mentee.photoUrl || ''}
+                                    alt={mentee.name || `Mentee ${index}`}
+                                    className="w-6 h-6 rounded-full border border-gray-800"
+                                    fallbackSrc="/images/default-avatar.svg"
+                                    userId={mentee.id}
+                                  />
+                                </div>
+                              ))}
+                              {session.mentees.length > 5 && (
+                                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs text-white border border-gray-800 relative z-0">
+                                  +{session.mentees.length - 5}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500">{t('sessions.no_attendees')}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        <span className="font-medium text-blue-400">{session.mentees ? session.mentees.length : 0}</span>
+                        <span>/</span>
+                        <span>{session.max_attendees}</span> {t('sessions.places')}
                       </div>
                     </div>
                   </div>

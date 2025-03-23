@@ -47,7 +47,12 @@
     "enrol_error": "Erreur lors de l'inscription à la session",
     "unenrol_success": "Désinscription réussie de la session",
     "unenrol_error": "Erreur lors de la désinscription de la session",
-    "unenrol_confirmation": "Êtes-vous sûr de vouloir vous désinscrire de la session: {{title}}?"
+    "unenrol_confirmation": "Êtes-vous sûr de vouloir vous désinscrire de la session: {{title}}?",
+    "attendees": "Participants",
+    "no_attendees": "Pas encore de participants",
+    "places": "places",
+    "mentor": "Mentor",
+    "unknown_mentor": "Mentor Inconnu"
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",

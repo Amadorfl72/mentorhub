@@ -48,7 +48,12 @@
     "enrol_error": "Error enrolling in the session",
     "unenrol_success": "Successfully unenrolled from the session",
     "unenrol_error": "Error unenrolling from the session",
-    "unenrol_confirmation": "Are you sure you want to unenroll from session: {{title}}?"
+    "unenrol_confirmation": "Are you sure you want to unenroll from session: {{title}}?",
+    "attendees": "Attendees",
+    "no_attendees": "No attendees yet",
+    "places": "places",
+    "mentor": "Mentor",
+    "unknown_mentor": "Unknown Mentor"
   },
   "welcome": "Welcome to the Application",
   "app": {

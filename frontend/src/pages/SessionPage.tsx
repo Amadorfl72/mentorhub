@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
 import { verifyToken } from '../services/authService';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, User } from '../context/AuthContext';
 import CachedImage from '../components/CachedImage';
 
 interface SessionFormData {
@@ -16,7 +16,13 @@ interface SessionFormData {
   scheduled_time: string;
   max_attendees: number;
   keywords: string;
-  mentees: { id: number }[];
+  mentees: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    photoUrl?: string;
+  }[];
   mentor_id?: number;
 }
 
@@ -96,7 +102,13 @@ const SessionPage: React.FC = () => {
               scheduled_time: session.scheduled_time,
               max_attendees: session.max_attendees,
               keywords: session.keywords || '',
-              mentees: session.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+              mentees: session.mentees?.map(mentee => ({ 
+                id: mentee.id || 0,
+                name: mentee.name || '',
+                email: mentee.email || '',
+                role: mentee.role || '',
+                photoUrl: mentee.photoUrl || ''
+              })) || [],
               mentor_id: session.mentor_id
             });
             
@@ -245,12 +257,22 @@ const SessionPage: React.FC = () => {
       // Llamar al servicio para inscribir al usuario
       await enrollMentee(parseInt(id), userId);
       
-      // Actualizar el estado local para reflejar la inscripción
-      // Solo agregamos el ID para evitar problemas de tipos
-      setSessionData(prevData => ({
-        ...prevData,
-        mentees: [...(prevData.mentees || []), { id: userId }]
-      }));
+      // Actualizar el estado local para reflejar la inscripción inmediatamente
+      setSessionData(prevData => {
+        // Crear un objeto mentee que coincida con el tipo esperado
+        const newMentee = { 
+          id: userId, // userId ya es un número por la conversión anterior con Number()
+          name: user.name || '',
+          email: user.email || '',
+          role: user.role || 'mentee',
+          photoUrl: user.photoUrl || ''
+        };
+        
+        return {
+          ...prevData,
+          mentees: [...(prevData.mentees || []), newMentee]
+        };
+      });
       
       // Mostrar mensaje de éxito
       alert(t('sessions.enrol_success'));
@@ -264,7 +286,13 @@ const SessionPage: React.FC = () => {
           scheduled_time: updatedSession.scheduled_time,
           max_attendees: updatedSession.max_attendees,
           keywords: updatedSession.keywords || '',
-          mentees: updatedSession.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+          mentees: updatedSession.mentees?.map(mentee => ({ 
+            id: mentee.id || 0,
+            name: mentee.name || '',
+            email: mentee.email || '',
+            role: mentee.role || '',
+            photoUrl: mentee.photoUrl || ''
+          })) || [],
           mentor_id: updatedSession.mentor_id
         });
       }
@@ -338,7 +366,13 @@ const SessionPage: React.FC = () => {
           scheduled_time: updatedSession.scheduled_time,
           max_attendees: updatedSession.max_attendees,
           keywords: updatedSession.keywords || '',
-          mentees: updatedSession.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+          mentees: updatedSession.mentees?.map(mentee => ({ 
+            id: mentee.id || 0,
+            name: mentee.name || '',
+            email: mentee.email || '',
+            role: mentee.role || '',
+            photoUrl: mentee.photoUrl || ''
+          })) || [],
           mentor_id: updatedSession.mentor_id
         });
       }
@@ -381,9 +415,10 @@ const SessionPage: React.FC = () => {
                   <p className="font-medium">{mentorInfo.name}</p>
                 </div>
                 <CachedImage 
-                  src={mentorInfo.photoUrl || "https://via.placeholder.com/40"}
+                  src={mentorInfo.photoUrl || ""}
                   alt={mentorInfo.name}
                   className="h-10 w-10 rounded-full"
+                  fallbackSrc="/images/default-avatar.svg"
                   userId={sessionData.mentor_id}
                 />
               </div>
@@ -478,6 +513,51 @@ const SessionPage: React.FC = () => {
                       />
                     </span>
                   ))}
+                </div>
+              </div>
+              
+              {/* Sección de información de la sesión */}
+              <div className="mb-4 p-4 bg-gray-800 rounded-lg">
+                {/* Información de mentees */}
+                <div className="mb-4 border-t border-gray-700 pt-4 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-200 mb-2">{t('sessions.attendees')}</h3>
+                  
+                  <div className="flex items-center justify-between">
+                    {/* Avatares de mentees */}
+                    <div className="flex items-center">
+                      <div className="flex -space-x-2 mr-4">
+                        {sessionData.mentees && sessionData.mentees.length > 0 ? (
+                          <>
+                            {sessionData.mentees.slice(0, 8).map((mentee, index) => (
+                              <div key={`${mentee.id}-${index}`} className="relative z-10" style={{ zIndex: 8 - index }}>
+                                <CachedImage 
+                                  src={mentee.photoUrl || ''}
+                                  alt={mentee.name || `Mentee ${index}`}
+                                  className="w-8 h-8 rounded-full border border-gray-800"
+                                  fallbackSrc="/images/default-avatar.svg"
+                                  userId={mentee.id}
+                                />
+                              </div>
+                            ))}
+                            {sessionData.mentees.length > 8 && (
+                              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs text-white border border-gray-800 relative z-0">
+                                +{sessionData.mentees.length - 8}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-500">{t('sessions.no_attendees')}</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Contador de plazas */}
+                    <div className="text-sm text-gray-400">
+                      <span className="font-medium text-blue-400">{sessionData.mentees ? sessionData.mentees.length : 0}</span>
+                      <span>/</span>
+                      <span>{sessionData.max_attendees}</span> {t('sessions.places')}
+                    </div>
+                  </div>
                 </div>
               </div>
               

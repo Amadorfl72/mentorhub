@@ -19,6 +19,14 @@ import ThemeSwitch from '../components/ThemeSwitch';
 import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions } from '../services/sessionService';
 import CachedImage from '../components/CachedImage';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
+import { User } from '../context/AuthContext';
+
+// Interfaz para una sesión enriquecida con información completa de mentees
+interface EnrichedSession extends Session {
+  mentees: User[];
+  mentorName?: string;
+  mentorPhotoUrl?: string;
+}
 
 interface NotificationState {
   show: boolean;
@@ -39,8 +47,8 @@ const AllSessionsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<EnrichedSession[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<EnrichedSession[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -94,64 +102,57 @@ const AllSessionsPage = () => {
 
   // Mover la definición de loadSessions fuera del useEffect
   const loadSessions = async () => {
-    setLoading(true);
+    let fetchedSessions: Session[] = [];
     try {
-      // Usar getAllSessions para obtener todas las sesiones con información completa
-      const allSessions = await getAllSessions();
-      
-      // Ordenar las sesiones por fecha (las más próximas primero)
-      const sortedSessions = allSessions.sort((a, b) => {
-        const dateA = new Date(a.scheduled_time).getTime();
-        const dateB = new Date(b.scheduled_time).getTime();
-        return dateA - dateB;
-      });
-      
-      setSessions(sortedSessions);
-      
-      // Si el usuario está autenticado, obtener sus sesiones como mentee
-      if (user && user.id) {
-        try {
-          const userMenteeSessions = await getApprenticeSessions();
-          // Guardar los IDs de las sesiones del usuario como mentee
-          const sessionIds = userMenteeSessions
-            .map(session => session.id)
-            .filter((id): id is number => id !== undefined);
-          
-          setUserMenteeSessionIds(new Set(sessionIds));
-        } catch (error) {
-          console.error('Error loading mentee sessions:', error);
-        }
+      // Verificar que el usuario existe
+      if (!user) {
+        console.error('User is not authenticated');
+        return;
       }
-      
-      // Obtener IDs de mentores únicos
-      const mentorIds = sortedSessions
+
+      // Obtener todas las sesiones independientemente del rol del usuario
+      fetchedSessions = await getAllSessions();
+      console.log('Fetched sessions:', fetchedSessions);
+
+      // Recopilar IDs de mentores
+      const mentorIds: number[] = fetchedSessions
         .map(session => session.mentor_id)
         .filter((id): id is number => id !== undefined);
+
+      // Enrich sessions with mentor information
+      const mentorInfos = await getMentorsInfo(mentorIds);
       
-      // Cargar información de mentores usando getMentorsInfo
-      if (mentorIds.length > 0) {
-        try {
-          const mentorsData = await getMentorsInfo(mentorIds);
-          setMentors(mentorsData);
-        } catch (error) {
-          console.error('Error loading mentors info:', error);
-          
-          // En caso de error, crear información genérica para todos los mentores
-          const fallbackMentorsData: Record<number, MentorInfo> = {};
-          for (const mentorId of mentorIds) {
-            fallbackMentorsData[mentorId] = {
-              id: mentorId,
-              name: `Mentor ${mentorId}`,
-              photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
-            };
-          }
-          setMentors(fallbackMentorsData);
-        }
-      }
+      // Process sessions with enriched data
+      const enrichedSessions = fetchedSessions.map(session => {
+        const mentorInfo = mentorInfos[session.mentor_id];
+        
+        // Ensure mentees is an array and has all required User properties
+        const enrichedMentees = session.mentees 
+          ? session.mentees.map(mentee => ({
+              ...mentee,
+              id: mentee.id ? (typeof mentee.id === 'string' ? Number(mentee.id) : mentee.id) : 0,
+              name: mentee.name || 'Unknown User',
+              photoUrl: mentee.photoUrl || '/images/default-avatar.svg',
+              email: mentee.email || 'no-email@example.com', // Default email
+              role: mentee.role || 'APPRENTICE' // Default role
+            }))
+          : [];
+        
+        return {
+          ...session,
+          mentorName: mentorInfo?.name || 'Unknown Mentor',
+          mentorPhotoUrl: mentorInfo?.photoUrl || '/images/default-avatar.svg',
+          mentees: enrichedMentees
+        } as EnrichedSession;
+      });
+
+      setSessions(enrichedSessions as EnrichedSession[]);
+      setFilteredSessions(enrichedSessions as EnrichedSession[]);
+      setLoading(false);
     } catch (error) {
-      console.error('Error al cargar las sesiones:', error);
-      showNotification(t('sessions.load_error'), 'error');
-    } finally {
+      console.error('Failed to load sessions:', error);
+      setNotification({ show: true, message: 'Failed to load sessions. Please try again later.', type: 'error' });
+      setSessions([]);
       setLoading(false);
     }
   };
@@ -159,7 +160,31 @@ const AllSessionsPage = () => {
   // Cargar las sesiones al montar el componente
   useEffect(() => {
     loadSessions();
-  }, [t]);
+
+    // Si el usuario está autenticado, también cargar las sesiones donde está inscrito
+    if (user?.id) {
+      const loadUserSessions = async () => {
+        try {
+          // Obtener las sesiones donde el usuario es mentee
+          const userMenteeSessions = await getApprenticeSessions();
+          
+          // Actualizar el conjunto de IDs de sesiones del usuario como mentee
+          if (userMenteeSessions && userMenteeSessions.length > 0) {
+            const sessionIds = userMenteeSessions
+              .map(session => session.id)
+              .filter((id): id is number => id !== undefined);
+            
+            setUserMenteeSessionIds(new Set(sessionIds));
+            console.log('User is enrolled in sessions:', sessionIds);
+          }
+        } catch (error) {
+          console.error('Error loading user mentee sessions:', error);
+        }
+      };
+      
+      loadUserSessions();
+    }
+  }, [t, user?.id]);
 
   // Filtrar las sesiones cuando cambia el estado de showPastSessions, searchTerm o sessions
   useEffect(() => {
@@ -305,6 +330,57 @@ const AllSessionsPage = () => {
         return newSet;
       });
       
+      // Obtener la información completa del usuario si es necesario
+      let userDetails = user;
+      
+      // Si falta algún dato importante del usuario, intentar obtenerlo
+      if (!user.photoUrl || !user.email) {
+        try {
+          const usersData = await getMentorsInfo([userId]);
+          if (usersData && usersData[userId]) {
+            const userInfo = usersData[userId];
+            userDetails = {
+              ...user,
+              photoUrl: userInfo.photoUrl || user.photoUrl || '',
+              email: userInfo.email || user.email || '',
+              role: userInfo.role || user.role || 'APPRENTICE'
+            };
+          }
+        } catch (error) {
+          console.error('Error al obtener detalles del usuario:', error);
+          // Continuar con los datos disponibles si hay un error
+        }
+      }
+      
+      // Actualizar inmediatamente las sesiones locales para reflejar la inscripción
+      setSessions(prevSessions => {
+        return prevSessions.map(session => {
+          if (session.id === sessionId) {
+            // Crear un objeto mentee completo que cumpla con la interfaz User
+            const newMentee: User = {
+              id: userId,
+              name: userDetails.name || 'Unknown User',
+              photoUrl: userDetails.photoUrl || '/images/default-avatar.svg', // Asegurar que siempre hay una URL
+              email: userDetails.email || 'no-email@example.com',
+              role: userDetails.role || 'APPRENTICE'
+            };
+            
+            console.log("Añadiendo nuevo mentee con foto:", newMentee.photoUrl);
+            
+            // Añadir el nuevo mentee a la lista existente
+            const updatedMentees = session.mentees && Array.isArray(session.mentees) 
+              ? [...session.mentees, newMentee] 
+              : [newMentee];
+            
+            return {
+              ...session,
+              mentees: updatedMentees
+            };
+          }
+          return session;
+        });
+      });
+      
       // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
       
@@ -319,7 +395,7 @@ const AllSessionsPage = () => {
   };
 
   // Añadir una función para verificar si el usuario está inscrito en la sesión
-  const isUserEnrolled = (session: Session): boolean => {
+  const isUserEnrolled = (session: EnrichedSession): boolean => {
     if (!user || !user.id || !session || !session.id) {
       return false;
     }
@@ -333,10 +409,10 @@ const AllSessionsPage = () => {
     
     // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
     if (session.mentees && session.mentees.length > 0) {
-      return session.mentees.some(mentee => 
-        // Asegurarse de comparar números con números para evitar problemas con tipos
-        mentee && mentee.id && Number(mentee.id) === userId
-      );
+      return session.mentees.some(mentee => {
+        const menteeId = typeof mentee.id === 'string' ? Number(mentee.id) : mentee.id;
+        return menteeId === userId;
+      });
     }
     
     return false;
@@ -386,6 +462,24 @@ const AllSessionsPage = () => {
         const newSet = new Set(Array.from(prev));
         newSet.delete(sessionId);
         return newSet;
+      });
+      
+      // Actualizar inmediatamente las sesiones locales para reflejar la desinscripción
+      setSessions(prevSessions => {
+        return prevSessions.map(session => {
+          if (session.id === sessionId) {
+            // Filtrar el mentee con el ID del usuario
+            const updatedMentees = session.mentees 
+              ? session.mentees.filter(mentee => mentee.id !== userId && Number(mentee.id) !== userId)
+              : [];
+            
+            return {
+              ...session,
+              mentees: updatedMentees
+            };
+          }
+          return session;
+        });
       });
       
       // Mostrar notificación de éxito
@@ -618,12 +712,14 @@ const AllSessionsPage = () => {
                       <div className="flex items-center mt-3 mb-4">
                         <div className="flex-shrink-0">
                           {mentorInfo && (
-                            <CachedImage 
-                              src={mentorInfo.photoUrl || ''}
+                            <img 
+                              src={mentorInfo.photoUrl || '/images/default-avatar.svg'}
                               alt={mentorInfo.name}
-                              className="w-8 h-8 rounded-full"
-                              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`}
-                              userId={session.mentor_id}
+                              className="w-8 h-8 rounded-full bg-gray-700"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null; // evitar bucle infinito
+                                e.currentTarget.src = '/images/default-avatar.svg';
+                              }}
                             />
                           )}
                         </div>
@@ -691,6 +787,50 @@ const AllSessionsPage = () => {
                             </span>
                           )
                         )}
+                      </div>
+                    </div>
+
+                    {/* Añadir fila de mentees y plazas disponibles */}
+                    <div className="flex items-center justify-between mt-1 pt-2 border-t border-gray-700">
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-400 mr-2">{t('sessions.attendees')}:</span>
+                        <div className="flex -space-x-2">
+                          {session.mentees && session.mentees.length > 0 ? (
+                            <>
+                              {session.mentees.slice(0, 5).map((mentee, index) => {
+                                const menteeId = mentee.id ? Number(mentee.id) : undefined;
+                                const photoUrl = mentee.photoUrl || '/images/default-avatar.svg';
+                                
+                                return (
+                                  <div key={`${menteeId || index}-${index}`} className="relative z-10" style={{ zIndex: 5 - index }}>
+                                    {/* Usar img directamente en lugar de CachedImage para evitar problemas de carga */}
+                                    <img 
+                                      src={photoUrl}
+                                      alt={mentee.name || `Mentee ${index}`}
+                                      className="w-6 h-6 rounded-full border border-gray-800 bg-gray-700"
+                                      onError={(e) => {
+                                        e.currentTarget.onerror = null; // evitar bucle infinito
+                                        e.currentTarget.src = '/images/default-avatar.svg';
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              })}
+                              {session.mentees.length > 5 && (
+                                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs text-white border border-gray-800 relative z-0">
+                                  +{session.mentees.length - 5}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500">{t('sessions.no_attendees')}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        <span className="font-medium text-blue-400">{session.mentees ? session.mentees.length : 0}</span>
+                        <span>/</span>
+                        <span>{session.max_attendees}</span> {t('sessions.places')}
                       </div>
                     </div>
                   </div>
