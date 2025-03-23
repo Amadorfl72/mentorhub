@@ -96,3 +96,25 @@ def enrol_mentee(session_id):
     db.session.commit()
 
     return jsonify({"message": f"Mentee {mentee.username} enrolled in session {session.title}"}), 200
+
+@session_bp.route('/sessions/<int:session_id>/unenrol', methods=['POST'])
+@login_required
+def unenrol_mentee(session_id):
+    session = MentorshipSession.query.get_or_404(session_id)
+    data = request.json
+    mentee_id = data.get('mentee_id')
+
+    if not mentee_id:
+        return jsonify({"error": "Mentee ID is required"}), 400
+
+    mentee = User.query.get_or_404(mentee_id)
+
+    # Verificar si el mentee está inscrito
+    if mentee not in session.mentees:
+        return jsonify({"error": "Mentee is not enrolled in this session"}), 400
+
+    # Eliminar el mentee de la sesión
+    session.mentees.remove(mentee)
+    db.session.commit()
+
+    return jsonify({"message": f"Mentee {mentee.username} unenrolled from session {session.title}"}), 200

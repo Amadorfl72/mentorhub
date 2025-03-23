@@ -8,4 +8,5 @@ google-auth==2.23.4
 google-auth-oauthlib==1.1.0
 flask-dance==7.0.0
 flask-mail==0.9.1
+PyJWT==2.8.0
 
