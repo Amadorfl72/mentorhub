@@ -53,7 +53,13 @@
     "no_attendees": "No attendees yet",
     "places": "places",
     "mentor": "Mentor",
-    "unknown_mentor": "Unknown Mentor"
+    "unknown_mentor": "Unknown Mentor",
+    "view": "View",
+    "all": "All",
+    "as_mentor": "As Mentor",
+    "as_mentee": "As Mentee",
+    "scheduled_date": "Scheduled date",
+    "scheduled_time": "Scheduled time"
   },
   "welcome": "Welcome to the Application",
   "app": {

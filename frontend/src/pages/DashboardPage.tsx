@@ -80,6 +80,8 @@ const DashboardPage = () => {
   const [filteredSessions, setFilteredSessions] = useState<EnrichedSession[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
+  // Añadir estado para filtrar el tipo de sesiones
+  const [sessionFilter, setSessionFilter] = useState<'all' | 'mentor' | 'mentee'>('all');
   const [notification, setNotification] = useState<NotificationState>({ 
     show: false, 
     message: '', 
@@ -416,11 +418,32 @@ const DashboardPage = () => {
       filtered = filtered.filter(session => !isSessionPast(session.scheduled_time));
     }
     
+    // Filtrar por tipo de rol (mentor o mentee)
+    if (sessionFilter !== 'all' && user?.id) {
+      const userId = Number(user.id);
+      
+      if (sessionFilter === 'mentor') {
+        // Mostrar solo sesiones donde el usuario es mentor
+        filtered = filtered.filter(session => session.mentor_id === userId);
+      } else if (sessionFilter === 'mentee') {
+        // Mostrar solo sesiones donde el usuario es mentee (está inscrito)
+        filtered = filtered.filter(session => {
+          // Comprobar si el ID de la sesión está en userMenteeSessionIds
+          if (session.id && userMenteeSessionIds.has(session.id)) {
+            return true;
+          }
+          
+          // Comprobar si el usuario está en la lista de mentees
+          return session.mentees?.some(mentee => Number(mentee.id) === userId) || false;
+        });
+      }
+    }
+    
     setFilteredSessions(filtered);
     
     // Resetear a la primera página cuando cambian los filtros
     setCurrentPage(1);
-  }, [showPastSessions, sessions]);
+  }, [showPastSessions, sessions, sessionFilter, user?.id, userMenteeSessionIds]);
 
   // Añadir este nuevo useEffect para las sesiones próximas
   useEffect(() => {
@@ -508,11 +531,6 @@ const DashboardPage = () => {
       setLoading(false);
       cancelDelete();
     }
-  };
-
-  // Función para manejar el cambio en el switch de mostrar sesiones pasadas
-  const handleTogglePastSessions = (value: boolean) => {
-    setShowPastSessions(value);
   };
 
   // Función para formatear la fecha y hora de manera más compacta
@@ -844,26 +862,59 @@ const DashboardPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{t('sessions.mySessions')}</h2>
           <div className="flex items-center gap-4">
-            {/* Switch para mostrar sesiones pasadas */}
-            <div className="flex items-center">
-              <Label className="mr-3 text-sm font-medium text-gray-300">
-                {t('sessions.show_past')}
-              </Label>
-              <div className="inline-flex rounded-lg border border-gray-600">
-                <button
-                  type="button"
-                  className={`px-3 py-1 text-sm rounded-l-lg ${showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                  onClick={() => handleTogglePastSessions(true)}
-                >
-                  {t('common.yes')}
-                </button>
-                <button
-                  type="button"
-                  className={`px-3 py-1 text-sm rounded-r-lg ${!showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                  onClick={() => handleTogglePastSessions(false)}
-                >
-                  {t('common.no')}
-                </button>
+            {/* Añadir filtros de forma similar a AllSessionsPage */}
+            <div className="flex items-center mb-4 mt-2">
+              {/* Switch para mostrar sesiones pasadas */}
+              <div className="flex items-center mr-6">
+                <Label className="mr-3 text-sm font-medium text-gray-300">
+                  {t('sessions.show_past')}
+                </Label>
+                <div className="inline-flex rounded-lg border border-gray-600">
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm rounded-l-lg ${showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                    onClick={() => setShowPastSessions(true)}
+                  >
+                    {t('common.yes')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm rounded-r-lg ${!showPastSessions ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                    onClick={() => setShowPastSessions(false)}
+                  >
+                    {t('common.no')}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Filtro por tipo de rol */}
+              <div className="flex items-center">
+                <Label className="mr-3 text-sm font-medium text-gray-300">
+                  {t('sessions.view')}
+                </Label>
+                <div className="inline-flex rounded-lg border border-gray-600">
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm ${sessionFilter === 'all' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                    onClick={() => setSessionFilter('all')}
+                  >
+                    {t('sessions.all')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm ${sessionFilter === 'mentor' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                    onClick={() => setSessionFilter('mentor')}
+                  >
+                    {t('sessions.as_mentor')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-1 text-sm ${sessionFilter === 'mentee' ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
+                    onClick={() => setSessionFilter('mentee')}
+                  >
+                    {t('sessions.as_mentee')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -52,7 +52,13 @@
     "no_attendees": "Aún no hay asistentes",
     "places": "plazas",
     "mentor": "Mentor",
-    "unknown_mentor": "Mentor Desconocido"
+    "unknown_mentor": "Mentor Desconocido",
+    "view": "Ver",
+    "all": "Todas",
+    "as_mentor": "Como Mentor",
+    "as_mentee": "Como Mentee",
+    "scheduled_date": "Fecha programada",
+    "scheduled_time": "Hora programada"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",
