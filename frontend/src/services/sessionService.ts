@@ -203,4 +203,15 @@ export const unenrollMentee = async (sessionId: number, menteeId: number): Promi
     console.error('Error al desuscribir al aprendiz:', error);
     throw error;
   }
+};
+
+// Nueva función para verificar si un usuario está inscrito en una sesión específica
+export const isUserEnrolledInSession = async (sessionId: number, userId: number): Promise<boolean> => {
+  try {
+    const response = await fetchWithAuth(`/sessions/${sessionId}/check-enrollment?mentee_id=${userId}`);
+    return response.enrolled || false;
+  } catch (error) {
+    console.error('Error al verificar inscripción:', error);
+    return false;
+  }
 }; 

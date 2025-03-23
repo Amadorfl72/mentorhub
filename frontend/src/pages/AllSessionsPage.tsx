@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee } from '../services/sessionService';
+import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions } from '../services/sessionService';
 import CachedImage from '../components/CachedImage';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
 
@@ -53,6 +53,9 @@ const AllSessionsPage = () => {
   // Estado para almacenar información de mentores
   const [mentors, setMentors] = useState<Record<number, MentorInfo>>({});
   
+  // Añadir este estado para rastrear las sesiones en las que el usuario está inscrito
+  const [userMenteeSessionIds, setUserMenteeSessionIds] = useState<Set<number>>(new Set());
+  
   // Estado para el modal de confirmación de borrado
   const [deleteModal, setDeleteModal] = useState<{
     show: boolean;
@@ -60,6 +63,17 @@ const AllSessionsPage = () => {
   }>({
     show: false,
     sessionId: null
+  });
+
+  // Estado para el modal de confirmación de desinscripción
+  const [unenrolModal, setUnenrolModal] = useState<{
+    show: boolean;
+    sessionId: number | null;
+    sessionTitle: string;
+  }>({
+    show: false,
+    sessionId: null,
+    sessionTitle: ''
   });
 
   // Añadir estos estados para manejar la paginación
@@ -82,7 +96,7 @@ const AllSessionsPage = () => {
   const loadSessions = async () => {
     setLoading(true);
     try {
-      // Usar getAllSessions en lugar de getMentorSessions para obtener todas las sesiones
+      // Usar getAllSessions para obtener todas las sesiones con información completa
       const allSessions = await getAllSessions();
       
       // Ordenar las sesiones por fecha (las más próximas primero)
@@ -93,6 +107,21 @@ const AllSessionsPage = () => {
       });
       
       setSessions(sortedSessions);
+      
+      // Si el usuario está autenticado, obtener sus sesiones como mentee
+      if (user && user.id) {
+        try {
+          const userMenteeSessions = await getApprenticeSessions();
+          // Guardar los IDs de las sesiones del usuario como mentee
+          const sessionIds = userMenteeSessions
+            .map(session => session.id)
+            .filter((id): id is number => id !== undefined);
+          
+          setUserMenteeSessionIds(new Set(sessionIds));
+        } catch (error) {
+          console.error('Error loading mentee sessions:', error);
+        }
+      }
       
       // Obtener IDs de mentores únicos
       const mentorIds = sortedSessions
@@ -238,7 +267,7 @@ const AllSessionsPage = () => {
     }
   };
 
-  // Función para verificar si una sesión ya ha pasado
+  // Añadir esta función para verificar si una sesión ya ha pasado
   const isSessionPast = (scheduledTime: string): boolean => {
     const sessionDate = new Date(scheduledTime).getTime();
     const now = new Date().getTime();
@@ -255,23 +284,31 @@ const AllSessionsPage = () => {
     setSearchTerm(e.target.value);
   };
 
-  // Añadir la función handleEnrol
+  // Modificar la función handleEnrol para evitar el error de TypeScript con Set
   const handleEnrol = async (sessionId: number) => {
     try {
       setLoading(true);
       // Obtener el ID del usuario actual
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!currentUser.id) {
+      if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
       
+      const userId = Number(user.id);
+      
       // Llamar al servicio para inscribir al usuario
-      await enrollMentee(sessionId, currentUser.id);
+      await enrollMentee(sessionId, userId);
+      
+      // Actualizar el conjunto de IDs de sesiones del usuario como mentee
+      setUserMenteeSessionIds(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.add(sessionId);
+        return newSet;
+      });
       
       // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
       
-      // Recargar las sesiones para actualizar el estado de inscripción
+      // Recargar las sesiones para actualizar los datos
       loadSessions();
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
@@ -283,34 +320,86 @@ const AllSessionsPage = () => {
 
   // Añadir una función para verificar si el usuario está inscrito en la sesión
   const isUserEnrolled = (session: Session): boolean => {
-    if (!user || !session.mentees) return false;
+    if (!user || !user.id || !session || !session.id) {
+      return false;
+    }
     
-    return session.mentees.some(mentee => mentee.id === user.id);
+    const userId = Number(user.id);
+    
+    // Verificar primero si el ID de la sesión está en el conjunto de sesiones del mentee
+    if (userMenteeSessionIds.has(session.id)) {
+      return true;
+    }
+    
+    // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
+    if (session.mentees && session.mentees.length > 0) {
+      return session.mentees.some(mentee => 
+        // Asegurarse de comparar números con números para evitar problemas con tipos
+        mentee && mentee.id && Number(mentee.id) === userId
+      );
+    }
+    
+    return false;
   };
 
-  // Añadir la función handleUnenrol
-  const handleUnenrol = async (sessionId: number) => {
+  // Función para mostrar el modal de confirmación de desinscripción
+  const confirmUnenrol = (sessionId: number) => {
+    // Encontrar la sesión por ID
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    setUnenrolModal({
+      show: true,
+      sessionId,
+      sessionTitle: session.title
+    });
+  };
+
+  // Función para cancelar la desinscripción
+  const cancelUnenrol = () => {
+    setUnenrolModal({
+      show: false,
+      sessionId: null,
+      sessionTitle: ''
+    });
+  };
+
+  // Actualizar la función handleUnenrol para que se ejecute después de confirmar
+  const handleUnenrol = async () => {
+    const sessionId = unenrolModal.sessionId;
+    if (!sessionId) return;
+    
     try {
       setLoading(true);
       // Obtener el ID del usuario actual
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!currentUser.id) {
+      if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
       
+      const userId = Number(user.id);
+      
       // Llamar al servicio para desuscribir al usuario
-      await unenrollMentee(sessionId, currentUser.id);
+      await unenrollMentee(sessionId, userId);
+      
+      // Eliminar la sesión del conjunto de IDs de sesiones del usuario como mentee
+      setUserMenteeSessionIds(prev => {
+        const newSet = new Set(Array.from(prev));
+        newSet.delete(sessionId);
+        return newSet;
+      });
       
       // Mostrar notificación de éxito
       showNotification(t('sessions.unenrol_success'), 'success');
       
-      // Recargar las sesiones
+      // Recargar las sesiones para actualizar los datos
       loadSessions();
     } catch (error) {
       console.error('Error al desuscribirse de la sesión:', error);
       showNotification(t('sessions.unenrol_error'), 'error');
     } finally {
       setLoading(false);
+      // Cerrar el modal
+      cancelUnenrol();
     }
   };
 
@@ -574,23 +663,32 @@ const AllSessionsPage = () => {
                             </Button>
                           </>
                         ) : (
-                          /* Si no es el mentor ni admin, mostrar botón según inscripción */
-                          isUserEnrolled(session) ? (
-                            <Button 
-                              size="xs" 
-                              color="warning"
-                              onClick={() => handleUnenrol(session.id!)}
-                            >
-                              {t('common.unenrol')}
-                            </Button>
+                          /* Si no es el mentor ni admin y la sesión no ha pasado, mostrar botón según inscripción */
+                          !isSessionPast(session.scheduled_time) ? (
+                            isUserEnrolled(session) ? (
+                              <Button 
+                                size="xs" 
+                                color="warning"
+                                onClick={() => confirmUnenrol(session.id!)}
+                                disabled={loading}
+                              >
+                                {t('common.unenrol')}
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="xs" 
+                                color="success"
+                                onClick={() => handleEnrol(session.id!)}
+                                disabled={loading}
+                              >
+                                {t('common.enrol')}
+                              </Button>
+                            )
                           ) : (
-                            <Button 
-                              size="xs" 
-                              color="success"
-                              onClick={() => handleEnrol(session.id!)}
-                            >
-                              {t('common.enrol')}
-                            </Button>
+                            /* Si la sesión ya pasó, mostrar un badge de "Pasada" */
+                            <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded">
+                              {t('sessions.past')}
+                            </span>
                           )
                         )}
                       </div>
@@ -645,6 +743,44 @@ const AllSessionsPage = () => {
               <Button
                 color="gray"
                 onClick={cancelDelete}
+              >
+                {t('common.no')}
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+      
+      {/* Modal de confirmación de desinscripción */}
+      <Modal
+        show={unenrolModal.show}
+        size="md"
+        popup={true}
+        onClose={cancelUnenrol}
+        theme={{
+          content: {
+            base: "relative h-full w-full p-4 md:h-auto",
+            inner: "relative rounded-lg bg-gray-800 shadow dark:bg-gray-800"
+          }
+        }}
+      >
+        <Modal.Header theme={{ base: "flex items-start justify-between rounded-t border-b p-5 border-gray-700" }} />
+        <Modal.Body>
+          <div className="text-center">
+            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-yellow-400" />
+            <h3 className="mb-5 text-lg font-normal text-gray-300">
+              {t('sessions.unenrol_confirmation', { title: unenrolModal.sessionTitle })}
+            </h3>
+            <div className="flex justify-center gap-4">
+              <Button
+                color="warning"
+                onClick={handleUnenrol}
+              >
+                {t('common.yes')}
+              </Button>
+              <Button
+                color="gray"
+                onClick={cancelUnenrol}
               >
                 {t('common.no')}
               </Button>
