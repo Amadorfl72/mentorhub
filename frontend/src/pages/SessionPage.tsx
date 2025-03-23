@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
@@ -62,6 +62,9 @@ const SessionPage: React.FC = () => {
   const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
 
   const { user } = useAuth();
+
+  // Añadir este estado para el modal de confirmación de desinscripción
+  const [unenrolModal, setUnenrolModal] = useState<boolean>(false);
 
   // Función para obtener información del usuario por ID
   const getUserById = async (userId: number): Promise<MentorInfo | null> => {
@@ -237,17 +240,34 @@ const SessionPage: React.FC = () => {
         throw new Error('Usuario no autenticado');
       }
       
+      const userId = Number(user.id);
+      
       // Llamar al servicio para inscribir al usuario
-      await enrollMentee(parseInt(id), user.id);
+      await enrollMentee(parseInt(id), userId);
       
       // Actualizar el estado local para reflejar la inscripción
+      // Solo agregamos el ID para evitar problemas de tipos
       setSessionData(prevData => ({
         ...prevData,
-        mentees: [...(prevData.mentees || []), { id: user.id as number }]
+        mentees: [...(prevData.mentees || []), { id: userId }]
       }));
       
       // Mostrar mensaje de éxito
       alert(t('sessions.enrol_success'));
+      
+      // Opcionalmente, recargar la sesión completa para tener datos actualizados
+      const updatedSession = await getSession(parseInt(id));
+      if (updatedSession) {
+        setSessionData({
+          title: updatedSession.title,
+          description: updatedSession.description,
+          scheduled_time: updatedSession.scheduled_time,
+          max_attendees: updatedSession.max_attendees,
+          keywords: updatedSession.keywords || '',
+          mentees: updatedSession.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+          mentor_id: updatedSession.mentor_id
+        });
+      }
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
       alert(t('sessions.enrol_error'));
@@ -258,12 +278,33 @@ const SessionPage: React.FC = () => {
 
   // Añadir una función para verificar si el usuario está inscrito en la sesión
   const isUserEnrolled = (): boolean => {
-    if (!user || !sessionData?.mentees) return false;
+    if (!user || !user.id || !sessionData) {
+      return false;
+    }
     
-    return sessionData.mentees.some(mentee => mentee.id === user.id);
+    const userId = Number(user.id);
+    
+    // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
+    if (sessionData.mentees && sessionData.mentees.length > 0) {
+      return sessionData.mentees.some(mentee => 
+        // Asegurarse de comparar números con números para evitar problemas con tipos
+        mentee && mentee.id && Number(mentee.id) === userId
+      );
+    }
+    
+    return false;
   };
 
-  // Añadir la función handleUnenrol
+  // Función para mostrar el modal de confirmación de desinscripción
+  const confirmUnenrol = () => {
+    setUnenrolModal(true);
+  };
+
+  // Función para cancelar la desinscripción
+  const cancelUnenrol = () => {
+    setUnenrolModal(false);
+  };
+
   const handleUnenrol = async () => {
     if (!id) return;
     
@@ -274,23 +315,50 @@ const SessionPage: React.FC = () => {
         throw new Error('Usuario no autenticado');
       }
       
+      const userId = Number(user.id);
+      
       // Llamar al servicio para desuscribir al usuario
-      await unenrollMentee(parseInt(id), user.id);
+      await unenrollMentee(parseInt(id), userId);
       
       // Actualizar el estado local para reflejar la cancelación de inscripción
       setSessionData(prevData => ({
         ...prevData,
-        mentees: prevData.mentees?.filter(mentee => mentee.id !== user.id as number) || []
+        mentees: prevData.mentees?.filter(mentee => Number(mentee.id) !== userId) || []
       }));
       
       // Mostrar mensaje de éxito
       alert(t('sessions.unenrol_success'));
+      
+      // Opcionalmente, recargar la sesión completa para tener datos actualizados
+      const updatedSession = await getSession(parseInt(id));
+      if (updatedSession) {
+        setSessionData({
+          title: updatedSession.title,
+          description: updatedSession.description,
+          scheduled_time: updatedSession.scheduled_time,
+          max_attendees: updatedSession.max_attendees,
+          keywords: updatedSession.keywords || '',
+          mentees: updatedSession.mentees?.map(mentee => ({ id: mentee.id || 0 })) || [],
+          mentor_id: updatedSession.mentor_id
+        });
+      }
     } catch (error) {
       console.error('Error al desuscribirse de la sesión:', error);
       alert(t('sessions.unenrol_error'));
     } finally {
       setLoading(false);
+      cancelUnenrol();
     }
+  };
+
+  // Añadir función para verificar si una sesión ya ha pasado
+  const isSessionPast = (): boolean => {
+    if (!sessionData || !sessionData.scheduled_time) {
+      return false;
+    }
+    const sessionDate = new Date(sessionData.scheduled_time).getTime();
+    const now = new Date().getTime();
+    return sessionDate < now;
   };
 
   return (
@@ -448,22 +516,29 @@ const SessionPage: React.FC = () => {
                     </>
                   ) : isEditMode ? (
                     /* Si no es el creador pero está en modo edición, mostrar botón según inscripción */
-                    isUserEnrolled() ? (
-                      <Button
-                        color="warning"
-                        onClick={handleUnenrol}
-                        disabled={loading}
-                      >
-                        {loading ? t('common.processing') : t('common.unenrol')}
-                      </Button>
+                    !isSessionPast() ? (
+                      isUserEnrolled() ? (
+                        <Button
+                          color="warning"
+                          onClick={confirmUnenrol}
+                          disabled={loading}
+                        >
+                          {loading ? t('common.processing') : t('common.unenrol')}
+                        </Button>
+                      ) : (
+                        <Button
+                          color="success"
+                          onClick={handleEnrol}
+                          disabled={loading}
+                        >
+                          {loading ? t('common.processing') : t('common.enrol')}
+                        </Button>
+                      )
                     ) : (
-                      <Button
-                        color="success"
-                        onClick={handleEnrol}
-                        disabled={loading}
-                      >
-                        {loading ? t('common.processing') : t('common.enrol')}
-                      </Button>
+                      /* Si la sesión ya pasó, mostrar un badge de "Pasada" */
+                      <span className="px-3 py-2 bg-gray-700 text-gray-400 text-sm rounded">
+                        {t('sessions.past')}
+                      </span>
                     )
                   ) : (
                     /* Si es modo creación, mostrar botón de crear */
@@ -512,6 +587,44 @@ const SessionPage: React.FC = () => {
               <Button
                 color="gray"
                 onClick={cancelDelete}
+              >
+                {t('common.no')}
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Modal de confirmación de desinscripción */}
+      <Modal
+        show={unenrolModal}
+        size="md"
+        popup={true}
+        onClose={cancelUnenrol}
+        theme={{
+          content: {
+            base: "relative h-full w-full p-4 md:h-auto",
+            inner: "relative rounded-lg bg-gray-800 shadow dark:bg-gray-800"
+          }
+        }}
+      >
+        <Modal.Header theme={{ base: "flex items-start justify-between rounded-t border-b p-5 border-gray-700" }} />
+        <Modal.Body>
+          <div className="text-center">
+            <HiExclamation className="mx-auto mb-4 h-14 w-14 text-yellow-400" />
+            <h3 className="mb-5 text-lg font-normal text-gray-300">
+              {t('sessions.unenrol_confirmation', { title: sessionData.title })}
+            </h3>
+            <div className="flex justify-center gap-4">
+              <Button
+                color="failure"
+                onClick={handleUnenrol}
+              >
+                {t('common.yes')}
+              </Button>
+              <Button
+                color="gray"
+                onClick={cancelUnenrol}
               >
                 {t('common.no')}
               </Button>

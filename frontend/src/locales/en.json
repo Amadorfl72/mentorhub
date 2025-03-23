@@ -47,7 +47,8 @@
     "enrol_success": "Successfully enrolled in the session",
     "enrol_error": "Error enrolling in the session",
     "unenrol_success": "Successfully unenrolled from the session",
-    "unenrol_error": "Error unenrolling from the session"
+    "unenrol_error": "Error unenrolling from the session",
+    "unenrol_confirmation": "Are you sure you want to unenroll from session: {{title}}?"
   },
   "welcome": "Welcome to the Application",
   "app": {

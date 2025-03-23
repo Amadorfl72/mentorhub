@@ -46,7 +46,8 @@
     "enrol_success": "Inscription réussie à la session",
     "enrol_error": "Erreur lors de l'inscription à la session",
     "unenrol_success": "Désinscription réussie de la session",
-    "unenrol_error": "Erreur lors de la désinscription de la session"
+    "unenrol_error": "Erreur lors de la désinscription de la session",
+    "unenrol_confirmation": "Êtes-vous sûr de vouloir vous désinscrire de la session: {{title}}?"
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
