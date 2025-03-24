@@ -92,14 +92,32 @@ const AllSessionsPage = () => {
 
   // Función para obtener información básica del usuario (versión simplificada)
   const getUserInfo = async (userId: number) => {
-    // En lugar de hacer una llamada a la API, devolvemos un objeto con datos genéricos
-    return {
-      id: userId,
-      name: `Mentor ${userId}`,
-      email: `mentor${userId}@example.com`,
-      photoUrl: '',
-      role: 'mentor'
-    };
+    try {
+      // Intentar obtener la información real del usuario desde el servicio
+      const usersData = await getMentorsInfo([userId]);
+      if (usersData && usersData[userId]) {
+        return usersData[userId];
+      }
+      
+      // Si no se puede obtener, devolver datos genéricos
+      return {
+        id: userId,
+        name: `User ${userId}`,
+        email: `user${userId}@example.com`,
+        photoUrl: '/images/default-avatar.svg',
+        role: 'apprentice'
+      };
+    } catch (error) {
+      console.error(`Error fetching info for user ${userId}:`, error);
+      // En caso de error, devolver datos genéricos
+      return {
+        id: userId,
+        name: `User ${userId}`,
+        email: `user${userId}@example.com`,
+        photoUrl: '/images/default-avatar.svg',
+        role: 'apprentice'
+      };
+    }
   };
 
   // Mover la definición de loadSessions fuera del useEffect y envolverla en useCallback
@@ -156,24 +174,29 @@ const AllSessionsPage = () => {
         }
       });
 
-      // Obtener información de todos los mentees
-      const userInfoMapTemp = new Map<number, MentorInfo>();
-      try {
-        await Promise.all(Array.from(menteeIds).map(async (id) => {
-          try {
-            const userInfo = await getUserInfo(id);
-            if (userInfo) {
-              userInfoMapTemp.set(id, userInfo);
+      console.log('Collected mentee IDs:', Array.from(menteeIds));
+
+      // Obtener información de todos los mentees de una sola vez
+      if (menteeIds.size > 0) {
+        try {
+          const menteeIdsArray = Array.from(menteeIds);
+          const menteesData = await getMentorsInfo(menteeIdsArray);
+          console.log('Fetched mentee data:', menteesData);
+          
+          // Crear un mapa con la información obtenida
+          const userInfoMapTemp = new Map<number, MentorInfo>();
+          menteeIdsArray.forEach(id => {
+            if (menteesData[id]) {
+              userInfoMapTemp.set(id, menteesData[id]);
             }
-          } catch (error) {
-            console.error(`Error fetching info for user ${id}:`, error);
-          }
-        }));
-        
-        // Actualizamos el estado con la información de mentees
-        setUserInfoMap(userInfoMapTemp);
-      } catch (error) {
-        console.error('Error fetching mentee information:', error);
+          });
+          
+          // Actualizar el estado con la información de los mentees
+          setUserInfoMap(userInfoMapTemp);
+          console.log('Updated userInfoMap with', userInfoMapTemp.size, 'entries');
+        } catch (error) {
+          console.error('Error fetching mentee information from API:', error);
+        }
       }
 
       setSessions(enrichedSessions as EnrichedSession[]);
@@ -837,12 +860,15 @@ const AllSessionsPage = () => {
                             <>
                               {session.mentees.slice(0, 5).map((mentee, index) => {
                                 // Determinar si mentee es un número (ID) o un objeto User
-                                let menteeId, photoUrl, name;
+                                let menteeId: number | undefined = undefined;
+                                let photoUrl: string = '/images/default-avatar.svg';
+                                let name: string = `Mentee ${index}`;
                                 
                                 if (typeof mentee === 'object' && 'id' in mentee) {
                                   menteeId = mentee.id ? Number(mentee.id) : undefined;
                                   photoUrl = mentee.photoUrl || '/images/default-avatar.svg';
                                   name = mentee.name || `Mentee ${index}`;
+                                  console.log(`Rendering mentee object: ID=${menteeId}, photo=${photoUrl}, name=${name}`);
                                 } else {
                                   // Es un ID numérico
                                   menteeId = Number(mentee);
@@ -850,15 +876,17 @@ const AllSessionsPage = () => {
                                   const menteeInfo = userInfoMap.get(menteeId);
                                   photoUrl = menteeInfo?.photoUrl || '/images/default-avatar.svg';
                                   name = menteeInfo?.name || `User ${menteeId}`;
+                                  console.log(`Rendering mentee ID ${menteeId}: info=${JSON.stringify(menteeInfo)}, photo=${photoUrl}, name=${name}`);
                                 }
                                 
                                 return (
                                   <div key={`${menteeId || index}-${index}`} className="relative z-10" style={{ zIndex: 5 - index }}>
                                     <img 
-                                      src={photoUrl}
+                                      src={photoUrl || '/images/default-avatar.svg'}
                                       alt={name}
                                       className="w-6 h-6 rounded-full border border-gray-800 bg-gray-700"
                                       onError={(e) => {
+                                        console.log(`Image error for mentee ${menteeId}: ${photoUrl}`);
                                         e.currentTarget.onerror = null; // evitar bucle infinito
                                         e.currentTarget.src = '/images/default-avatar.svg';
                                       }}
