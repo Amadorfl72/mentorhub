@@ -1016,7 +1016,16 @@ const DashboardPage = () => {
                   >
                     {/* Título de la sesión */}
                     <h3 className="text-xl font-semibold mb-3">
-                      {session.title}
+                      <a 
+                        href={`/session/${session.id}`} 
+                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/session/${session.id}`);
+                        }}
+                      >
+                        {session.title}
+                      </a>
                       {isPast && (
                         <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
                           {t("sessions.past")}

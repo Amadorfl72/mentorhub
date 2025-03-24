@@ -18,6 +18,7 @@ import ThemeSwitch from '../components/ThemeSwitch';
 import { deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions } from '../services/sessionService';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
 import { User } from '../context/AuthContext';
+import CachedImage from '../components/CachedImage';
 
 // Interfaz para una sesión enriquecida con información completa de mentees
 interface EnrichedSession extends Omit<Session, 'mentees'> {
@@ -720,7 +721,16 @@ const AllSessionsPage = () => {
                   >
                     {/* Título de la sesión */}
                     <h3 className="text-xl font-semibold mb-3">
-                      {session.title}
+                      <a 
+                        href={`/session/${session.id}`} 
+                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(`/session/${session.id}`);
+                        }}
+                      >
+                        {session.title}
+                      </a>
                       {isPast && (
                         <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
                           {t('sessions.past')}
@@ -774,14 +784,12 @@ const AllSessionsPage = () => {
                       {/* Información del mentor */}
                       <div className="flex items-center mt-3 mb-4">
                         <div className="flex-shrink-0">
-                          <img 
-                            src={session.mentorPhotoUrl || (mentorInfo && mentorInfo.photoUrl) || '/images/default-avatar.svg'}
-                            alt={session.mentorName || (mentorInfo && mentorInfo.name) || t('sessions.unknown_mentor')}
-                            className="w-8 h-8 rounded-full bg-gray-700"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null; // evitar bucle infinito
-                              e.currentTarget.src = '/images/default-avatar.svg';
-                            }}
+                          <CachedImage 
+                            src={session.mentorPhotoUrl || '/images/default-avatar.svg'}
+                            alt={session.mentorName || t('sessions.unknown_mentor')}
+                            className="w-8 h-8 rounded-full"
+                            fallbackSrc="/images/default-avatar.svg"
+                            userId={session.mentor_id}
                           />
                         </div>
                         <div className="ml-3">
@@ -793,14 +801,6 @@ const AllSessionsPage = () => {
                       
                       {/* Botones de acción */}
                       <div className="flex gap-2">
-                        <Button 
-                          size="xs" 
-                          color="light"
-                          onClick={() => navigate(`/session/${session.id}`)}
-                        >
-                          {t('common.view')}
-                        </Button>
-                        
                         {/* Si el usuario es el mentor de la sesión o es admin, mostrar botones de editar/eliminar */}
                         {(session.mentor_id === user?.id || user?.role === 'admin') ? (
                           <>
@@ -881,15 +881,12 @@ const AllSessionsPage = () => {
                                 
                                 return (
                                   <div key={`${menteeId || index}-${index}`} className="relative z-10" style={{ zIndex: 5 - index }}>
-                                    <img 
+                                    <CachedImage 
                                       src={photoUrl || '/images/default-avatar.svg'}
                                       alt={name}
-                                      className="w-6 h-6 rounded-full border border-gray-800 bg-gray-700"
-                                      onError={(e) => {
-                                        console.log(`Image error for mentee ${menteeId}: ${photoUrl}`);
-                                        e.currentTarget.onerror = null; // evitar bucle infinito
-                                        e.currentTarget.src = '/images/default-avatar.svg';
-                                      }}
+                                      className="w-6 h-6 rounded-full border border-gray-800"
+                                      fallbackSrc="/images/default-avatar.svg"
+                                      userId={menteeId}
                                     />
                                   </div>
                                 );

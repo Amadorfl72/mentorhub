@@ -94,21 +94,45 @@ const SessionPage: React.FC = () => {
       const fetchSession = async () => {
         setLoading(true);
         try {
+          console.log(`Fetching session data for id: ${id}`);
           const session = await getSession(parseInt(id));
+          console.log('Session data received:', session);
+          
           if (session) {
+            // Verificar y registrar datos de mentees
+            console.log('Session mentees data:', session.mentees);
+            
             setSessionData({
               title: session.title,
               description: session.description,
               scheduled_time: session.scheduled_time,
               max_attendees: session.max_attendees,
               keywords: session.keywords || '',
-              mentees: session.mentees?.map(mentee => ({ 
-                id: mentee.id || 0,
-                name: mentee.name || '',
-                email: mentee.email || '',
-                role: mentee.role || '',
-                photoUrl: mentee.photoUrl || ''
-              })) || [],
+              mentees: session.mentees?.map(mentee => {
+                console.log('Processing mentee:', mentee);
+                
+                // Comprobar si mentee es un objeto o un ID numérico
+                if (typeof mentee === 'object' && mentee !== null) {
+                  return { 
+                    id: mentee.id || 0,
+                    name: mentee.name || '',
+                    email: mentee.email || '',
+                    role: mentee.role || '',
+                    photoUrl: mentee.photoUrl || ''
+                  };
+                } else {
+                  // Es un ID numérico
+                  const menteeId = Number(mentee);
+                  console.log(`Mentee is just an ID: ${menteeId}`);
+                  return { 
+                    id: menteeId,
+                    name: '',
+                    email: '',
+                    role: '',
+                    photoUrl: ''
+                  };
+                }
+              }) || [],
               mentor_id: session.mentor_id
             });
             
@@ -565,17 +589,25 @@ const SessionPage: React.FC = () => {
                       <div className="flex -space-x-2 mr-4">
                         {sessionData.mentees && sessionData.mentees.length > 0 ? (
                           <>
-                            {sessionData.mentees.slice(0, 8).map((mentee, index) => (
-                              <div key={`${mentee.id}-${index}`} className="relative z-10" style={{ zIndex: 8 - index }}>
-                                <CachedImage 
-                                  src={mentee.photoUrl || ''}
-                                  alt={mentee.name || `Mentee ${index}`}
-                                  className="w-8 h-8 rounded-full border border-gray-800"
-                                  fallbackSrc="/images/default-avatar.svg"
-                                  userId={mentee.id}
-                                />
-                              </div>
-                            ))}
+                            {sessionData.mentees.slice(0, 8).map((mentee, index) => {
+                              // Asegurar que el ID del mentee sea válido y no sea 0
+                              const menteeId = typeof mentee.id === 'string' ? parseInt(mentee.id, 10) : Number(mentee.id);
+                              console.log(`Rendering mentee in detail view: id=${menteeId}, photoUrl=${mentee.photoUrl}, name=${mentee.name}`);
+                              
+                              // Ya no usaremos la URL directa porque podría estar vacía
+                              // En su lugar, siempre usaremos CachedImage con el ID para obtener los datos completos
+                              return (
+                                <div key={`${menteeId || index}-${index}`} className="relative z-10" style={{ zIndex: 8 - index }}>
+                                  <CachedImage 
+                                    src={''}  // No usamos la URL directa
+                                    alt={mentee.name || `User ${menteeId}`}
+                                    className="w-8 h-8 rounded-full border border-gray-800"
+                                    fallbackSrc="/images/default-avatar.svg"
+                                    userId={menteeId}  // Este es el ID real del usuario
+                                  />
+                                </div>
+                              );
+                            })}
                             {sessionData.mentees.length > 8 && (
                               <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs text-white border border-gray-800 relative z-0">
                                 +{sessionData.mentees.length - 8}

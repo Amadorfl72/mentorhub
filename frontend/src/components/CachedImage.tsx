@@ -46,14 +46,16 @@ const CachedImage: React.FC<CachedImageProps> = ({
       setError(false);
       setIsUsingFallback(false);
       
+      console.log(`CachedImage: Loading image for userId=${userId}, src=${src}, alt=${alt}`);
+      
       // Si se proporciona un userId específico, obtener la foto de ese usuario
       if (userId) {
         try {
           // Asegurarse de que userId sea un número
           const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
           
-          // Si userIdNum no es un número válido, usar fallback
-          if (isNaN(userIdNum)) {
+          // Si userIdNum no es un número válido o es cero, usar fallback
+          if (isNaN(userIdNum) || userIdNum === 0) {
             console.warn(`Invalid userId provided: ${userId}`);
             setImageSrc(fallbackSrc);
             setIsUsingFallback(true);
@@ -61,15 +63,22 @@ const CachedImage: React.FC<CachedImageProps> = ({
             return;
           }
           
+          console.log(`CachedImage: Fetching user info for ID ${userIdNum}`);
           const userInfo = await getMentorInfo(userIdNum);
+          console.log(`CachedImage: Received user info:`, userInfo);
+          
           if (userInfo && userInfo.photoBlob) {
+            console.log(`CachedImage: Using photoBlob for user ${userIdNum}`);
             setImageSrc(userInfo.photoBlob);
             setLoading(false);
             return;
           } else if (userInfo && userInfo.photoUrl) {
+            console.log(`CachedImage: Using photoUrl for user ${userIdNum}: ${userInfo.photoUrl}`);
             setImageSrc(userInfo.photoUrl);
             setLoading(false);
             return;
+          } else {
+            console.log(`CachedImage: No photo found for user ${userIdNum}, using fallback`);
           }
         } catch (error) {
           console.error(`Error loading user photo for ID ${userId}:`, error);
@@ -119,15 +128,19 @@ const CachedImage: React.FC<CachedImageProps> = ({
   };
 
   const handleImageError = () => {
+    console.error(`CachedImage: Error loading image with src=${imageSrc}, userId=${userId}, fallbackSrc=${fallbackSrc}`);
+    
     if (!error) {
       setError(true);
       setIsUsingFallback(true);
       
       // Verificar si el fallbackSrc existe y es una URL local
       if (fallbackSrc && fallbackSrc.startsWith('/')) {
+        console.log(`CachedImage: Using local fallback image: ${fallbackSrc}`);
         setImageSrc(fallbackSrc);
       } else {
         // Si no hay un fallback local válido, usamos iniciales
+        console.log(`CachedImage: No valid fallback, using initials for: ${alt}`);
         setImageSrc('');
       }
     }
@@ -136,7 +149,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
   return (
     <>
       {loading && (
-        <div className={`${className} bg-gray-700 animate-pulse`}></div>
+        <div className={`${className} bg-gray-700 animate-pulse rounded-full`}></div>
       )}
       {!loading && imageSrc && (
         <img
@@ -151,8 +164,8 @@ const CachedImage: React.FC<CachedImageProps> = ({
       {(!loading && !imageSrc) && (
         // Fallback con iniciales cuando la imagen no carga
         <div 
-          className={`${className} bg-gray-700 flex items-center justify-center`}
-          style={{ fontSize: '40%' }}
+          className={`${className} bg-blue-700 flex items-center justify-center text-white rounded-full`}
+          style={{ fontSize: className.includes('w-6') ? '9px' : '12px' }}
         >
           {getInitials()}
         </div>
