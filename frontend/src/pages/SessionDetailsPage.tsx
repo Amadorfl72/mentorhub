@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
-import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers } from 'react-icons/hi';
+import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers, HiCheckCircle } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
 import ThemeSwitch from '../components/ThemeSwitch';
@@ -111,6 +111,10 @@ const SessionDetailsPage: React.FC = () => {
   // Añadir este estado para el modal de confirmación de desinscripción
   const [unenrolModal, setUnenrolModal] = useState<boolean>(false);
 
+  // Añadir estado para notificaciones de éxito
+  const [successNotification, setSuccessNotification] = useState<string>('');
+  const [showSuccessNotification, setShowSuccessNotification] = useState<boolean>(false);
+
   // Función para obtener información del usuario por ID
   const getUserById = async (userId: number): Promise<MentorInfo | null> => {
     try {
@@ -128,69 +132,97 @@ const SessionDetailsPage: React.FC = () => {
     }
   };
 
+  // Función para mostrar notificación de éxito
+  const showSuccess = (message: string) => {
+    setSuccessNotification(message);
+    setShowSuccessNotification(true);
+    setTimeout(() => {
+      setShowSuccessNotification(false);
+    }, 3000); // Ocultar después de 3 segundos
+  };
+
+  // Modificar la función fetchSession para poder reutilizarla
+  const fetchSession = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      // console.log(`Fetching session data for id: ${id}`);
+      const session = await getSession(parseInt(id));
+      // console.log('Session data received:', session);
+      
+      if (session) {
+        // Verificar y registrar datos de mentees
+        // console.log('Session mentees data:', session.mentees);
+        
+        // Procesar cada mentee para obtener su información completa
+        const processedMentees = await Promise.all((session.mentees || []).map(async (mentee) => {
+          // Comprobar si mentee es un objeto o un ID numérico
+          if (typeof mentee === 'object' && mentee !== null) {
+            return { 
+              id: mentee.id || 0,
+              name: mentee.name || '',
+              email: mentee.email || '',
+              role: mentee.role || '',
+              photoUrl: mentee.photoUrl || ''
+            };
+          } else {
+            // Es un ID numérico, obtener los datos completos
+            const menteeId = Number(mentee);
+            // console.log(`Mentee is just an ID: ${menteeId}`);
+            try {
+              const menteeData = await getUserById(menteeId);
+              if (menteeData) {
+                return {
+                  id: menteeData.id,
+                  name: menteeData.name,
+                  email: menteeData.email,
+                  role: menteeData.role,
+                  photoUrl: menteeData.photoUrl || ''
+                };
+              }
+            } catch (error) {
+              console.error(`Error fetching mentee data for ID ${menteeId}:`, error);
+            }
+            // Si falla, devolver solo el ID
+            return { 
+              id: menteeId,
+              name: '',
+              email: '',
+              role: '',
+              photoUrl: ''
+            };
+          }
+        }));
+        
+        setSessionData({
+          title: session.title,
+          description: session.description,
+          scheduled_time: session.scheduled_time,
+          max_attendees: session.max_attendees,
+          keywords: session.keywords || '',
+          mentees: processedMentees,
+          mentor_id: session.mentor_id
+        });
+        
+        // Obtener información del mentor
+        if (session.mentor_id) {
+          setLoadingMentor(true);
+          const mentor = await getUserById(session.mentor_id);
+          setMentorInfo(mentor);
+          setLoadingMentor(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar la sesión:', error);
+      // Aquí podrías mostrar un mensaje de error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (isExistingSession) {
-      const fetchSession = async () => {
-        setLoading(true);
-        try {
-          // console.log(`Fetching session data for id: ${id}`);
-          const session = await getSession(parseInt(id!));
-          // console.log('Session data received:', session);
-          
-          if (session) {
-            // Verificar y registrar datos de mentees
-            // console.log('Session mentees data:', session.mentees);
-            
-            setSessionData({
-              title: session.title,
-              description: session.description,
-              scheduled_time: session.scheduled_time,
-              max_attendees: session.max_attendees,
-              keywords: session.keywords || '',
-              mentees: session.mentees?.map(mentee => {
-                // console.log('Processing mentee:', mentee);
-                
-                // Comprobar si mentee es un objeto o un ID numérico
-                if (typeof mentee === 'object' && mentee !== null) {
-                  return { 
-                    id: mentee.id || 0,
-                    name: mentee.name || '',
-                    email: mentee.email || '',
-                    role: mentee.role || '',
-                    photoUrl: mentee.photoUrl || ''
-                  };
-                } else {
-                  // Es un ID numérico
-                  const menteeId = Number(mentee);
-                  // console.log(`Mentee is just an ID: ${menteeId}`);
-                  return { 
-                    id: menteeId,
-                    name: '',
-                    email: '',
-                    role: '',
-                    photoUrl: ''
-                  };
-                }
-              }) || [],
-              mentor_id: session.mentor_id
-            });
-            
-            // Obtener información del mentor
-            if (session.mentor_id) {
-              setLoadingMentor(true);
-              const mentor = await getUserById(session.mentor_id);
-              setMentorInfo(mentor);
-              setLoadingMentor(false);
-            }
-          }
-        } catch (error) {
-          console.error('Error al cargar la sesión:', error);
-          // Aquí podrías mostrar un mensaje de error
-        } finally {
-          setLoading(false);
-        }
-      };
-      
       fetchSession();
     }
   }, [id, isExistingSession]);
@@ -323,48 +355,17 @@ const SessionDetailsPage: React.FC = () => {
       // Llamar al servicio para inscribir al usuario
       await enrollMentee(parseInt(id), userId);
       
-      // Actualizar el estado local para reflejar la inscripción inmediatamente
-      setSessionData(prevData => {
-        // Crear un objeto mentee que coincida con el tipo esperado
-        const newMentee = { 
-          id: userId, // userId ya es un número por la conversión anterior con Number()
-          name: user.name || '',
-          email: user.email || '',
-          role: user.role || 'mentee',
-          photoUrl: user.photoUrl || ''
-        };
-        
-        return {
-          ...prevData,
-          mentees: [...(prevData.mentees || []), newMentee]
-        };
-      });
+      // Mostrar notificación de éxito
+      showSuccess(t('sessions.enrol_success'));
       
-      // Mostrar mensaje de éxito
-      alert(t('sessions.enrol_success'));
+      // Refrescar los datos de la sesión para mostrar avatares actualizados
+      await fetchSession();
       
-      // Opcionalmente, recargar la sesión completa para tener datos actualizados
-      const updatedSession = await getSession(parseInt(id));
-      if (updatedSession) {
-        setSessionData({
-          title: updatedSession.title,
-          description: updatedSession.description,
-          scheduled_time: updatedSession.scheduled_time,
-          max_attendees: updatedSession.max_attendees,
-          keywords: updatedSession.keywords || '',
-          mentees: updatedSession.mentees?.map(mentee => ({ 
-            id: mentee.id || 0,
-            name: mentee.name || '',
-            email: mentee.email || '',
-            role: mentee.role || '',
-            photoUrl: mentee.photoUrl || ''
-          })) || [],
-          mentor_id: updatedSession.mentor_id
-        });
-      }
     } catch (error) {
       console.error('Error al inscribirse en la sesión:', error);
-      alert(t('sessions.enrol_error'));
+      // Mostrar notificación de error
+      setSuccessNotification(t('sessions.enrol_error'));
+      setShowSuccessNotification(true);
     } finally {
       setLoading(false);
     }
@@ -414,40 +415,22 @@ const SessionDetailsPage: React.FC = () => {
       // Llamar al servicio para desuscribir al usuario
       await unenrollMentee(parseInt(id), userId);
       
-      // Actualizar el estado local para reflejar la cancelación de inscripción
-      setSessionData(prevData => ({
-        ...prevData,
-        mentees: prevData.mentees?.filter(mentee => Number(mentee.id) !== userId) || []
-      }));
+      // Mostrar notificación de éxito
+      showSuccess(t('sessions.unenrol_success'));
       
-      // Mostrar mensaje de éxito
-      alert(t('sessions.unenrol_success'));
+      // Refrescar los datos de la sesión para mostrar avatares actualizados
+      await fetchSession();
       
-      // Opcionalmente, recargar la sesión completa para tener datos actualizados
-      const updatedSession = await getSession(parseInt(id));
-      if (updatedSession) {
-        setSessionData({
-          title: updatedSession.title,
-          description: updatedSession.description,
-          scheduled_time: updatedSession.scheduled_time,
-          max_attendees: updatedSession.max_attendees,
-          keywords: updatedSession.keywords || '',
-          mentees: updatedSession.mentees?.map(mentee => ({ 
-            id: mentee.id || 0,
-            name: mentee.name || '',
-            email: mentee.email || '',
-            role: mentee.role || '',
-            photoUrl: mentee.photoUrl || ''
-          })) || [],
-          mentor_id: updatedSession.mentor_id
-        });
-      }
+      // Cerrar el modal de confirmación
+      cancelUnenrol();
+      
     } catch (error) {
       console.error('Error al desuscribirse de la sesión:', error);
-      alert(t('sessions.unenrol_error'));
+      // Mostrar notificación de error
+      setSuccessNotification(t('sessions.unenrol_error'));
+      setShowSuccessNotification(true);
     } finally {
       setLoading(false);
-      cancelUnenrol();
     }
   };
 
@@ -471,6 +454,16 @@ const SessionDetailsPage: React.FC = () => {
             <p>{t('common.not_authorized')}</p>
           </div>
           <p className="text-sm mt-1">{t('common.redirecting')}</p>
+        </div>
+      )}
+      
+      {/* Notificación de éxito */}
+      {showSuccessNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-800 text-white px-4 py-3 rounded shadow-lg">
+          <div className="flex items-center">
+            <HiCheckCircle className="h-6 w-6 mr-2" />
+            <p>{successNotification}</p>
+          </div>
         </div>
       )}
       
