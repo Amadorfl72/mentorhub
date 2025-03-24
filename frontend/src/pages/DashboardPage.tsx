@@ -186,15 +186,15 @@ const DashboardPage = () => {
 
       // Obtener todas las sesiones para la sección "Upcoming Sessions"
       const allSessionsData = await getAllSessions();
-      console.log("Todas las sesiones:", allSessionsData);
+      // console.log("Todas las sesiones:", allSessionsData);
 
       // Obtener las sesiones del usuario (como mentor)
       const userMentorSessionsData = await getMentorSessions();
-      console.log("Sesiones como mentor:", userMentorSessionsData);
+      // console.log("Sesiones como mentor:", userMentorSessionsData);
 
       // Obtener las sesiones del usuario (como mentee)
       const userMenteeSessionsData = await getApprenticeSessions();
-      console.log("Sesiones como mentee:", userMenteeSessionsData);
+      // console.log("Sesiones como mentee:", userMenteeSessionsData);
 
       // Guardar los IDs de las sesiones del usuario como mentee para uso en isUserEnrolled
       const menteeSessionIds = new Set(
@@ -670,6 +670,8 @@ const DashboardPage = () => {
       // Recargar las sesiones para obtener datos actualizados
       // Esto es importante para asegurar que todos los datos estén sincronizados
       loadSessions();
+
+      // console.log('User enrolled successfully in session:', sessionId);
     } catch (error) {
       console.error("Error al inscribirse en la sesión:", error);
       showNotification(t("sessions.enrol_error"), "error");
@@ -755,6 +757,8 @@ const DashboardPage = () => {
 
       // Recargar las sesiones para actualizar los datos
       loadSessions();
+
+      // console.log('User unenrolled successfully from session:', sessionId);
     } catch (error) {
       console.error("Error al desuscribirse de la sesión:", error);
       showNotification(t("sessions.unenrol_error"), "error");
@@ -1155,6 +1159,9 @@ const DashboardPage = () => {
                                   typeof mentee === "object" && mentee.name
                                     ? mentee.name
                                     : menteeInfo?.name || `User ${menteeId}`;
+
+                                // console.log(`Rendering mentee object: ID=${menteeId}, photo=${photoUrl}`);
+                                // console.log(`Rendering mentee ID: ${menteeId}, info=${JSON.stringify(menteeInfo)}`);
 
                                 return (
                                   <CachedImage

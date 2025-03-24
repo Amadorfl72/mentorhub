@@ -46,7 +46,7 @@ const CachedImage: React.FC<CachedImageProps> = ({
       setError(false);
       setIsUsingFallback(false);
       
-      console.log(`CachedImage: Loading image for userId=${userId}, src=${src}, alt=${alt}`);
+      // console.log(`CachedImage: Loading image for userId=${userId}, src=${src}, alt=${alt}`);
       
       // Si se proporciona un userId específico, obtener la foto de ese usuario
       if (userId) {
@@ -63,22 +63,22 @@ const CachedImage: React.FC<CachedImageProps> = ({
             return;
           }
           
-          console.log(`CachedImage: Fetching user info for ID ${userIdNum}`);
+          // console.log(`CachedImage: Fetching user info for ID ${userIdNum}`);
           const userInfo = await getMentorInfo(userIdNum);
-          console.log(`CachedImage: Received user info:`, userInfo);
+          // console.log(`CachedImage: Received user info:`, userInfo);
           
           if (userInfo && userInfo.photoBlob) {
-            console.log(`CachedImage: Using photoBlob for user ${userIdNum}`);
+            // console.log(`CachedImage: Using photoBlob for user ${userIdNum}`);
             setImageSrc(userInfo.photoBlob);
             setLoading(false);
             return;
           } else if (userInfo && userInfo.photoUrl) {
-            console.log(`CachedImage: Using photoUrl for user ${userIdNum}: ${userInfo.photoUrl}`);
+            // console.log(`CachedImage: Using photoUrl for user ${userIdNum}: ${userInfo.photoUrl}`);
             setImageSrc(userInfo.photoUrl);
             setLoading(false);
             return;
           } else {
-            console.log(`CachedImage: No photo found for user ${userIdNum}, using fallback`);
+            // console.log(`CachedImage: No photo found for user ${userIdNum}, using fallback`);
           }
         } catch (error) {
           console.error(`Error loading user photo for ID ${userId}:`, error);
@@ -136,11 +136,11 @@ const CachedImage: React.FC<CachedImageProps> = ({
       
       // Verificar si el fallbackSrc existe y es una URL local
       if (fallbackSrc && fallbackSrc.startsWith('/')) {
-        console.log(`CachedImage: Using local fallback image: ${fallbackSrc}`);
+        // console.log(`CachedImage: Using local fallback image: ${fallbackSrc}`);
         setImageSrc(fallbackSrc);
       } else {
         // Si no hay un fallback local válido, usamos iniciales
-        console.log(`CachedImage: No valid fallback, using initials for: ${alt}`);
+        // console.log(`CachedImage: No valid fallback, using initials for: ${alt}`);
         setImageSrc('');
       }
     }

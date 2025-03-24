@@ -15,11 +15,11 @@ const mentorsCache: Record<number, MentorInfo> = {};
 
 // Función para obtener información de un mentor
 export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
-  console.log(`getMentorInfo: Called for user ID ${mentorId}`);
+  // console.log(`getMentorInfo: Called for user ID ${mentorId}`);
   
   // Si ya tenemos la información en caché, devolverla
   if (mentorsCache[mentorId]) {
-    console.log(`getMentorInfo: Using cached info for ${mentorId}`);
+    // console.log(`getMentorInfo: Using cached info for ${mentorId}`);
     return mentorsCache[mentorId];
   }
   
@@ -30,7 +30,7 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
       const currentUser = JSON.parse(currentUserStr);
       // Si el usuario actual es el mentor que buscamos
       if (currentUser.id === mentorId) {
-        console.log(`getMentorInfo: User ${mentorId} is current user`);
+        // console.log(`getMentorInfo: User ${mentorId} is current user`);
         const mentorInfo: MentorInfo = {
           id: currentUser.id,
           name: currentUser.name || currentUser.username || `Mentor ${mentorId}`,
@@ -52,7 +52,7 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
       throw new Error('No authentication token found');
     }
     
-    console.log(`getMentorInfo: Fetching from API for user ${mentorId}`);
+    // console.log(`getMentorInfo: Fetching from API for user ${mentorId}`);
     const response = await fetch(`${API_URL}/users/${mentorId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -66,7 +66,7 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
     }
     
     const userData = await response.json();
-    console.log(`getMentorInfo: Received data for user ${mentorId}:`, userData);
+    // console.log(`getMentorInfo: Received data for user ${mentorId}:`, userData);
     
     const mentorInfo: MentorInfo = {
       id: userData.id,
@@ -144,7 +144,7 @@ export const getMentorsInfo = async (mentorIds: number[]): Promise<Record<number
 export const getAllUsers = async (): Promise<MentorInfo[]> => {
   try {
     // Como tenemos problemas de CORS, devolvemos un array vacío
-    console.warn('getAllUsers: Esta función no está disponible debido a problemas de CORS');
+    // console.warn('getAllUsers: Esta función no está disponible debido a problemas de CORS');
     return [];
   } catch (error) {
     console.error('Error fetching all users:', error);

@@ -76,19 +76,6 @@ const SessionDetailsPage: React.FC = () => {
   // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición
   const isEditMode = urlHasEditParam && isOwnerOrAdmin;
   
-  // Verificar si intentó acceder al modo edición sin autorización
-  useEffect(() => {
-    if (urlHasEditParam && !isOwnerOrAdmin && mentorInfo) {
-      setShowAuthError(true);
-      // Redirigir a la vista sin el parámetro de edición
-      setTimeout(() => {
-        navigate(`/session/${id}`, { replace: true });
-        // Ocultar la notificación después de redireccionar
-        setShowAuthError(false);
-      }, 3000);
-    }
-  }, [urlHasEditParam, isOwnerOrAdmin, mentorInfo, id, navigate]);
-  
   // Los campos solo son editables si es una sesión nueva o si estamos en modo edición
   const isEditable = !isExistingSession || isEditMode;
   
@@ -101,6 +88,25 @@ const SessionDetailsPage: React.FC = () => {
     keywords: '',
     mentees: [],
   });
+  
+  // Verificar si el usuario actual es el mentor de la sesión
+  const isSessionMentor = useMemo(() => {
+    if (!user || !sessionData.mentor_id) return false;
+    return Number(sessionData.mentor_id) === Number(user.id);
+  }, [user, sessionData.mentor_id]);
+  
+  // Verificar si intentó acceder al modo edición sin autorización
+  useEffect(() => {
+    if (urlHasEditParam && !isOwnerOrAdmin && mentorInfo) {
+      setShowAuthError(true);
+      // Redirigir a la vista sin el parámetro de edición
+      setTimeout(() => {
+        navigate(`/session/${id}`, { replace: true });
+        // Ocultar la notificación después de redireccionar
+        setShowAuthError(false);
+      }, 3000);
+    }
+  }, [urlHasEditParam, isOwnerOrAdmin, mentorInfo, id, navigate]);
   
   // Añadir este estado para el modal de confirmación de desinscripción
   const [unenrolModal, setUnenrolModal] = useState<boolean>(false);
@@ -127,13 +133,13 @@ const SessionDetailsPage: React.FC = () => {
       const fetchSession = async () => {
         setLoading(true);
         try {
-          console.log(`Fetching session data for id: ${id}`);
+          // console.log(`Fetching session data for id: ${id}`);
           const session = await getSession(parseInt(id!));
-          console.log('Session data received:', session);
+          // console.log('Session data received:', session);
           
           if (session) {
             // Verificar y registrar datos de mentees
-            console.log('Session mentees data:', session.mentees);
+            // console.log('Session mentees data:', session.mentees);
             
             setSessionData({
               title: session.title,
@@ -142,7 +148,7 @@ const SessionDetailsPage: React.FC = () => {
               max_attendees: session.max_attendees,
               keywords: session.keywords || '',
               mentees: session.mentees?.map(mentee => {
-                console.log('Processing mentee:', mentee);
+                // console.log('Processing mentee:', mentee);
                 
                 // Comprobar si mentee es un objeto o un ID numérico
                 if (typeof mentee === 'object' && mentee !== null) {
@@ -156,7 +162,7 @@ const SessionDetailsPage: React.FC = () => {
                 } else {
                   // Es un ID numérico
                   const menteeId = Number(mentee);
-                  console.log(`Mentee is just an ID: ${menteeId}`);
+                  // console.log(`Mentee is just an ID: ${menteeId}`);
                   return { 
                     id: menteeId,
                     name: '',
@@ -666,7 +672,7 @@ const SessionDetailsPage: React.FC = () => {
                             {sessionData.mentees.slice(0, 8).map((mentee, index) => {
                               // Asegurar que el ID del mentee sea válido y no sea 0
                               const menteeId = typeof mentee.id === 'string' ? parseInt(mentee.id, 10) : Number(mentee.id);
-                              console.log(`Rendering mentee in detail view: id=${menteeId}, photoUrl=${mentee.photoUrl}, name=${mentee.name}`);
+                              // console.log(`Rendering mentee in detail view: id=${menteeId}, photoUrl=${mentee.photoUrl}, name=${mentee.name}`);
                               
                               // Ya no usaremos la URL directa porque podría estar vacía
                               // En su lugar, siempre usaremos CachedImage con el ID para obtener los datos completos
@@ -738,8 +744,8 @@ const SessionDetailsPage: React.FC = () => {
                       {loading ? t('common.saving') : t('common.save')}
                     </Button>
                   ) : isExistingSession && !isEditMode ? (
-                    /* Si no es el creador pero está en modo visualización, mostrar botón según inscripción */
-                    !isSessionPast() ? (
+                    /* Si está en modo visualización, mostrar botón según inscripción */
+                    !isSessionPast() && !isSessionMentor ? (
                       isUserEnrolled() ? (
                         <Button
                           color="warning"
@@ -758,10 +764,12 @@ const SessionDetailsPage: React.FC = () => {
                         </Button>
                       )
                     ) : (
-                      /* Si la sesión ya pasó, mostrar un badge de "Pasada" */
-                      <span className="px-3 py-2 bg-gray-700 text-gray-400 text-sm rounded">
-                        {t('sessions.past')}
-                      </span>
+                      /* Si la sesión ya pasó o el usuario es el mentor, no mostrar botón de inscripción */
+                      isSessionPast() && (
+                        <span className="px-3 py-2 bg-gray-700 text-gray-400 text-sm rounded">
+                          {t('sessions.past')}
+                        </span>
+                      )
                     )
                   ) : (
                     /* Si es modo creación, mostrar botón de crear */

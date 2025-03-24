@@ -133,7 +133,7 @@ const AllSessionsPage = () => {
 
       // Obtener todas las sesiones independientemente del rol del usuario
       fetchedSessions = await getAllSessions();
-      console.log('Fetched sessions:', fetchedSessions);
+      // console.log('Fetched sessions:', fetchedSessions);
 
       // Recopilar IDs de mentores
       const mentorIds: number[] = fetchedSessions
@@ -175,14 +175,14 @@ const AllSessionsPage = () => {
         }
       });
 
-      console.log('Collected mentee IDs:', Array.from(menteeIds));
+      // console.log('Collected mentee IDs:', Array.from(menteeIds));
 
       // Obtener información de todos los mentees de una sola vez
       if (menteeIds.size > 0) {
         try {
           const menteeIdsArray = Array.from(menteeIds);
           const menteesData = await getMentorsInfo(menteeIdsArray);
-          console.log('Fetched mentee data:', menteesData);
+          // console.log('Fetched mentee data:', menteesData);
           
           // Crear un mapa con la información obtenida
           const userInfoMapTemp = new Map<number, MentorInfo>();
@@ -194,7 +194,7 @@ const AllSessionsPage = () => {
           
           // Actualizar el estado con la información de los mentees
           setUserInfoMap(userInfoMapTemp);
-          console.log('Updated userInfoMap with', userInfoMapTemp.size, 'entries');
+          // console.log('Updated userInfoMap with', userInfoMapTemp.size, 'entries');
         } catch (error) {
           console.error('Error fetching mentee information from API:', error);
         }
@@ -229,7 +229,7 @@ const AllSessionsPage = () => {
               .filter((id): id is number => id !== undefined);
             
             setUserMenteeSessionIds(new Set(sessionIds));
-            console.log('User is enrolled in sessions:', sessionIds);
+            // console.log('User is enrolled in sessions:', sessionIds);
           }
         } catch (error) {
           console.error('Error loading user mentee sessions:', error);
@@ -419,7 +419,7 @@ const AllSessionsPage = () => {
               role: userDetails.role || 'APPRENTICE'
             };
             
-            console.log("Añadiendo nuevo mentee con foto:", newMentee.photoUrl);
+            // console.log("Añadiendo nuevo mentee con foto:", newMentee.photoUrl);
             
             // Añadir el nuevo mentee a la lista existente
             const updatedMentees = [...(Array.isArray(session.mentees) ? (session.mentees as any[]) : []), newMentee];
@@ -842,7 +842,7 @@ const AllSessionsPage = () => {
                                   menteeId = mentee.id ? Number(mentee.id) : undefined;
                                   photoUrl = mentee.photoUrl || '/images/default-avatar.svg';
                                   name = mentee.name || `Mentee ${index}`;
-                                  console.log(`Rendering mentee object: ID=${menteeId}, photo=${photoUrl}, name=${name}`);
+                                  // console.log(`Rendering mentee object: ID=${menteeId}, photo=${photoUrl}, name=${name}`);
                                 } else {
                                   // Es un ID numérico
                                   menteeId = Number(mentee);
@@ -850,7 +850,7 @@ const AllSessionsPage = () => {
                                   const menteeInfo = userInfoMap.get(menteeId);
                                   photoUrl = menteeInfo?.photoUrl || '/images/default-avatar.svg';
                                   name = menteeInfo?.name || `User ${menteeId}`;
-                                  console.log(`Rendering mentee ID ${menteeId}: info=${JSON.stringify(menteeInfo)}, photo=${photoUrl}, name=${name}`);
+                                  // console.log(`Rendering mentee ID ${menteeId}: info=${JSON.stringify(menteeInfo)}, photo=${photoUrl}, name=${name}`);
                                 }
                                 
                                 return (
