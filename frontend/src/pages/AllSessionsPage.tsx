@@ -40,6 +40,49 @@ const truncateDescription = (description: string, maxLength: number = 100) => {
   if (description.length <= maxLength) {
     return description;
   }
+  
+  // Expresión regular para detectar URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  // Encontrar todas las URLs en el texto
+  let match;
+  const urls: { index: number; length: number }[] = [];
+  
+  while ((match = urlRegex.exec(description)) !== null) {
+    urls.push({
+      index: match.index,
+      length: match[0].length
+    });
+  }
+  
+  // Si no hay URLs, truncar normalmente
+  if (urls.length === 0) {
+    return description.substring(0, maxLength).trim();
+  }
+  
+  // Comprobar si alguna URL cruza el punto de truncamiento
+  for (const url of urls) {
+    const urlStart = url.index;
+    const urlEnd = urlStart + url.length;
+    
+    // Si la URL cruza el punto de truncamiento
+    if (urlStart < maxLength && urlEnd > maxLength) {
+      // Opción 1: Truncar antes de la URL
+      if (urlStart > 15) { // Asegurar que hay suficiente texto antes
+        return description.substring(0, urlStart).trim();
+      }
+      // Opción 2: Incluir la URL completa y truncar después
+      else if (urlEnd < maxLength + 50) { // No extender demasiado
+        return description.substring(0, urlEnd).trim();
+      }
+      // Si la URL es muy larga, truncar en el punto original
+      else {
+        return description.substring(0, maxLength).trim();
+      }
+    }
+  }
+  
+  // Si no hay problemas con URLs, truncar normalmente
   return description.substring(0, maxLength).trim();
 };
 
