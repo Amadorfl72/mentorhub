@@ -1015,22 +1015,11 @@ const DashboardPage = () => {
                     className={`bg-gray-800 rounded-lg p-5 shadow h-full flex flex-col ${isPast ? "opacity-70" : ""}`}
                   >
                     {/* Título de la sesión */}
-                    <h3 className="text-xl font-semibold mb-3">
-                      <a 
-                        href={`/session/${session.id}`} 
-                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate(`/session/${session.id}`);
-                        }}
-                      >
-                        {session.title}
-                      </a>
-                      {isPast && (
-                        <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                          {t("sessions.past")}
-                        </span>
-                      )}
+                    <h3 
+                      className="text-lg font-bold tracking-tight cursor-pointer hover:underline text-white mb-2"
+                      onClick={() => navigate(`/session/${session.id}`)}
+                    >
+                      {session.title}
                     </h3>
 
                     <div className="mb-4 flex-grow">
@@ -1106,24 +1095,9 @@ const DashboardPage = () => {
 
                       {/* Botones de acción */}
                       <div className="flex gap-2">
-                        {/* Si el usuario es el mentor de la sesión, mostrar botones de editar y eliminar */}
+                        {/* Si el usuario es el mentor de la sesión, no mostrar ningún botón */}
                         {session.mentor_id === user?.id ? (
-                          <>
-                            <Button
-                              size="xs"
-                              color="light"
-                              onClick={() => navigate(`/session/${session.id}`)}
-                            >
-                              {t("common.edit")}
-                            </Button>
-                            <Button
-                              size="xs"
-                              color="failure"
-                              onClick={() => confirmDelete(session.id!)}
-                            >
-                              {t("common.delete")}
-                            </Button>
-                          </>
+                          <></>
                         ) : /* Si no es el mentor y la sesión no ha pasado, mostrar botón apropiado según inscripción */
                         !isPast ? (
                           isUserEnrolled(session) ? (

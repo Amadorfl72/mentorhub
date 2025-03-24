@@ -674,36 +674,33 @@ const SessionDetailsPage: React.FC = () => {
                 
                 {/* Botones de acción a la derecha */}
                 <div className="flex gap-2">
-                  {/* Si no estamos en modo edición y el usuario es el mentor o admin, mostrar botón de editar */}
+                  {/* Si no estamos en modo edición y el usuario es el mentor o admin, mostrar botones de editar y eliminar */}
                   {isExistingSession && !isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') && (
-                    <Button
-                      color="info"
-                      onClick={() => navigate(`/session/${id}?edit=true`)}
-                    >
-                      {t('common.edit')}
-                    </Button>
-                  )}
-                  
-                  {/* Si es el creador de la sesión o es admin y estamos en modo edición, mostrar botones de editar/eliminar */}
-                  {isExistingSession && isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
                     <>
-                      {/* Botón de eliminar */}
                       <Button
                         color="failure"
                         onClick={confirmDelete}
                       >
                         {t('common.delete')}
                       </Button>
-                      
-                      {/* Botón de guardar */}
                       <Button
-                        color="success"
-                        onClick={handleSubmit}
-                        disabled={loading}
+                        color="info"
+                        onClick={() => navigate(`/session/${id}?edit=true`)}
                       >
-                        {loading ? t('common.saving') : t('common.save')}
+                        {t('common.edit')}
                       </Button>
                     </>
+                  )}
+                  
+                  {/* Si es el creador de la sesión o es admin y estamos en modo edición, mostrar botón de guardar */}
+                  {isExistingSession && isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
+                    <Button
+                      color="success"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                    >
+                      {loading ? t('common.saving') : t('common.save')}
+                    </Button>
                   ) : isExistingSession && !isEditMode ? (
                     /* Si no es el creador pero está en modo visualización, mostrar botón según inscripción */
                     !isSessionPast() ? (
