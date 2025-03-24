@@ -9,13 +9,14 @@ import {
   HiCheck, 
   HiX, 
   HiExclamation,
-  HiArrowLeft
+  HiArrowLeft,
+  HiDuplicate
 } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions } from '../services/sessionService';
+import { deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions, duplicateSession } from '../services/sessionService';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
 import { User } from '../context/AuthContext';
 import CachedImage from '../components/CachedImage';
@@ -134,6 +135,9 @@ const AllSessionsPage = () => {
   // Añadir estos estados para manejar la paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Limitado a 6 registros por página
+
+  // Añadir estado para indicar que está duplicando una sesión
+  const [isDuplicating, setIsDuplicating] = useState<boolean>(false);
 
   // Función para obtener información básica del usuario (versión simplificada)
   const getUserInfo = async (userId: number) => {
@@ -605,6 +609,26 @@ const AllSessionsPage = () => {
     }
   };
 
+  // Función para manejar la duplicación de sesiones
+  const handleDuplicate = async (sessionId: number) => {
+    try {
+      setIsDuplicating(true);
+      
+      // Llamar al servicio para duplicar la sesión
+      const duplicatedSession = await duplicateSession(sessionId);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.duplicate_success'), 'success');
+      
+      // Navegar a la página de edición de la sesión duplicada con el parámetro edit=true
+      navigate(`/session/${duplicatedSession.id}?edit=true`);
+    } catch (error) {
+      console.error('Error al duplicar la sesión:', error);
+      showNotification(t('sessions.duplicate_error'), 'error');
+      setIsDuplicating(false);
+    }
+  };
+
   // Componente de paginación personalizado para tema oscuro
   const CustomPagination = ({ currentPage, totalPages }: { currentPage: number, totalPages: number }) => {
     if (totalPages <= 1) return null;
@@ -847,33 +871,46 @@ const AllSessionsPage = () => {
                       
                       {/* Botones de acción */}
                       <div className="flex gap-2">
-                        {/* Si el usuario es el mentor de la sesión o es admin, no mostrar ningún botón */}
-                        {(session.mentor_id === user?.id || user?.role === 'admin') ? (
-                          <></>
-                        ) : (
-                          /* Si no es el mentor ni admin y la sesión no ha pasado, mostrar botón según inscripción */
-                          !isSessionPast(session.scheduled_time) ? (
-                            isUserEnrolled(session) ? (
-                              <Button 
-                                size="xs" 
-                                color="warning"
-                                onClick={() => confirmUnenrol(session.id!)}
-                                disabled={loading}
-                              >
-                                {t('common.unenrol')}
-                              </Button>
-                            ) : (
-                              <Button 
-                                size="xs" 
-                                color="success"
-                                onClick={() => handleEnrol(session.id!)}
-                                disabled={loading}
-                              >
-                                {t('common.enrol')}
-                              </Button>
-                            )
+                        {/* Si el usuario es el mentor de la sesión o es admin, mostrar botón de duplicar */}
+                        {(session.mentor_id === user?.id || user?.role === 'admin') && (
+                          <Button
+                            size="xs"
+                            color="purple"
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                              e.stopPropagation();
+                              handleDuplicate(session.id!);
+                            }}
+                            disabled={loading || isDuplicating}
+                            title={t('sessions.duplicate')}
+                          >
+                            <HiDuplicate className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {/* Si el usuario no es el mentor y la sesión no ha pasado, mostrar botón según inscripción */}
+                        {session.mentor_id !== user?.id && !isPast ? (
+                          isUserEnrolled(session) ? (
+                            <Button 
+                              size="xs" 
+                              color="warning"
+                              onClick={() => confirmUnenrol(session.id!)}
+                              disabled={loading}
+                            >
+                              {t('common.unenrol')}
+                            </Button>
                           ) : (
-                            /* Si la sesión ya pasó, mostrar un badge de "Pasada" */
+                            <Button 
+                              size="xs" 
+                              color="success"
+                              onClick={() => handleEnrol(session.id!)}
+                              disabled={loading}
+                            >
+                              {t('common.enrol')}
+                            </Button>
+                          )
+                        ) : (
+                          /* Si la sesión ya pasó y el usuario no es el mentor ni admin, mostrar un badge */
+                          !isPast || session.mentor_id === user?.id || user?.role === 'admin' ? null : (
                             <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded">
                               {t('sessions.past')}
                             </span>

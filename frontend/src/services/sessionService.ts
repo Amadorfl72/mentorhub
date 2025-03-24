@@ -214,4 +214,33 @@ export const isUserEnrolledInSession = async (sessionId: number, userId: number)
     console.error('Error al verificar inscripción:', error);
     return false;
   }
+};
+
+// Nueva función para duplicar una sesión existente
+export const duplicateSession = async (sessionId: number): Promise<Session> => {
+  try {
+    // 1. Obtener la sesión original
+    const originalSession = await getSession(sessionId);
+    
+    if (!originalSession) {
+      throw new Error('No se pudo encontrar la sesión original');
+    }
+    
+    // 2. Crear un nuevo objeto de sesión sin ID, sin mentees y con título modificado
+    const duplicatedSession: Omit<Session, 'id'> = {
+      title: `${originalSession.title} - Copy`,
+      description: originalSession.description,
+      mentor_id: originalSession.mentor_id,
+      scheduled_time: originalSession.scheduled_time,
+      max_attendees: originalSession.max_attendees,
+      keywords: originalSession.keywords,
+      mentees: [], // Sin mentees en la nueva sesión
+    };
+    
+    // 3. Crear la nueva sesión
+    return await createSession(duplicatedSession);
+  } catch (error) {
+    console.error('Error al duplicar la sesión:', error);
+    throw error;
+  }
 }; 

@@ -53,7 +53,10 @@
     "places": "places",
     "mentor": "Mentor",
     "unknown_mentor": "Mentor Inconnu",
-    "session_details": "Détails de la Session"
+    "session_details": "Détails de la Session",
+    "duplicate": "Dupliquer",
+    "duplicate_success": "Session dupliquée avec succès",
+    "duplicate_error": "Erreur lors de la duplication de la session"
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",
