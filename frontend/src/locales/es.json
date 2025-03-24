@@ -19,10 +19,10 @@
     "title": "Sesiones",
     "description": "Aquí puedes encontrar todas las sesiones.",
     "new_session": "Nueva Sesión",
-    "create_session": "Crear Sesión",
+    "create_session": "Crear nueva sesión de mentoría",
     "mySessions": "Mis Sesiones",
     "show_more": "... mostrar más",
-    "edit_session": "Editar Sesión",
+    "edit_session": "Editar sesión",
     "title_label": "Título",
     "description_label": "Descripción",
     "date_time": "Fecha y hora",
@@ -58,7 +58,8 @@
     "as_mentor": "Como Mentor",
     "as_mentee": "Como Mentee",
     "scheduled_date": "Fecha programada",
-    "scheduled_time": "Hora programada"
+    "scheduled_time": "Hora programada",
+    "session_details": "Detalles de la Sesión"
   },
   "welcome": "Bienvenido a la Aplicación",
   "loginPrompt": "Por favor, inicia sesión para continuar.",

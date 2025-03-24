@@ -59,7 +59,8 @@
     "as_mentor": "As Mentor",
     "as_mentee": "As Mentee",
     "scheduled_date": "Scheduled date",
-    "scheduled_time": "Scheduled time"
+    "scheduled_time": "Scheduled time",
+    "session_details": "Session Details"
   },
   "welcome": "Welcome to the Application",
   "app": {

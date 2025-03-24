@@ -19,10 +19,10 @@
     "title": "Sessions",
     "description": "Ici, vous pouvez trouver toutes les sessions.",
     "new_session": "Nouvelle Session",
-    "create_session": "Créer une Session",
+    "create_session": "Créer une nouvelle session de mentorat",
     "mySessions": "Mes Sessions",
     "show_more": "...voir plus",
-    "edit_session": "Modifier la Session",
+    "edit_session": "Modifier la session",
     "title_label": "Titre",
     "description_label": "Description",
     "date_time": "Date et heure",
@@ -52,7 +52,8 @@
     "no_attendees": "Pas encore de participants",
     "places": "places",
     "mentor": "Mentor",
-    "unknown_mentor": "Mentor Inconnu"
+    "unknown_mentor": "Mentor Inconnu",
+    "session_details": "Détails de la Session"
   },
   "welcome": "Welcome to the Application",
   "loginPrompt": "Veuillez vous connecter pour continuer.",

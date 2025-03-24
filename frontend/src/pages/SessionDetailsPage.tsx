@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
@@ -44,11 +44,19 @@ interface FormData {
   mentees?: { id: number }[];
 }
 
-const SessionPage: React.FC = () => {
+const SessionDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const isEditMode = !!id;
+  const isExistingSession = !!id;
   const { t } = useTranslation();
+  const location = useLocation();
+  
+  // Verificar si estamos en modo edición (basado en un parámetro de URL)
+  const queryParams = new URLSearchParams(location.search);
+  const isEditMode = queryParams.get('edit') === 'true';
+  
+  // Los campos solo son editables si es una sesión nueva o si estamos en modo edición
+  const isEditable = !isExistingSession || isEditMode;
   
   const [loading, setLoading] = useState<boolean>(false);
   const [sessionData, setSessionData] = useState<SessionFormData>({
@@ -90,12 +98,12 @@ const SessionPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isEditMode && id) {
+    if (isExistingSession) {
       const fetchSession = async () => {
         setLoading(true);
         try {
           console.log(`Fetching session data for id: ${id}`);
-          const session = await getSession(parseInt(id));
+          const session = await getSession(parseInt(id!));
           console.log('Session data received:', session);
           
           if (session) {
@@ -154,9 +162,12 @@ const SessionPage: React.FC = () => {
       
       fetchSession();
     }
-  }, [id, isEditMode]);
+  }, [id, isExistingSession]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    // Solo permitir cambios si los campos son editables
+    if (!isEditable) return;
+    
     const { name, value } = e.target;
     setSessionData(prev => ({
       ...prev,
@@ -425,14 +436,16 @@ const SessionPage: React.FC = () => {
       <header className="bg-gray-800 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">
-            {isEditMode ? t('sessions.edit_session') : t('sessions.create_session')}
+            {!isExistingSession ? t('sessions.create_session') : 
+             isEditMode ? t('sessions.edit_session') : 
+             t('sessions.session_details')}
           </h1>
           
           <div className="flex items-center space-x-4">
             <ThemeSwitch />
             
             {/* Información del mentor (solo en modo edición) */}
-            {isEditMode && mentorInfo && (
+            {isExistingSession && mentorInfo && (
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm text-gray-400">{t('sessions.mentor')}</p>
@@ -448,7 +461,7 @@ const SessionPage: React.FC = () => {
               </div>
             )}
             
-            {isEditMode && loadingMentor && (
+            {isExistingSession && loadingMentor && (
               <div className="flex items-center space-x-2">
                 <div className="animate-pulse h-10 w-24 bg-gray-700 rounded"></div>
                 <div className="animate-pulse h-10 w-10 bg-gray-700 rounded-full"></div>
@@ -476,6 +489,7 @@ const SessionPage: React.FC = () => {
                   onChange={handleChange}
                   required
                   className="bg-gray-700 text-white border-gray-600"
+                  disabled={!isEditable}
                 />
               </div>
               
@@ -488,6 +502,7 @@ const SessionPage: React.FC = () => {
                   onChange={handleChange}
                   rows={4}
                   className="bg-gray-700 text-white border-gray-600"
+                  disabled={!isEditable}
                 />
               </div>
               
@@ -500,6 +515,7 @@ const SessionPage: React.FC = () => {
                   value={sessionData.scheduled_time}
                   onChange={handleChange}
                   className="bg-gray-700 text-white border-gray-600"
+                  disabled={!isEditable}
                 />
               </div>
               
@@ -512,33 +528,55 @@ const SessionPage: React.FC = () => {
                   value={sessionData.max_attendees}
                   onChange={handleChange}
                   className="bg-gray-700 text-white border-gray-600"
+                  disabled={!isEditable}
                 />
               </div>
               
-              <div>
-                <Label htmlFor="keywords" value={t('sessions.keywords')} className="text-white mb-2" />
-                <TextInput
-                  id="keywords"
-                  name="keywords_input"
-                  placeholder={t('sessions.keywords_placeholder')}
-                  onKeyDown={handleKeywordKeyPress}
-                  className="bg-gray-700 text-white border-gray-600"
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {sessionData.keywords.split(',').filter(Boolean).map((keyword) => (
-                    <span 
-                      key={keyword.trim()} 
-                      className="bg-purple-900 text-purple-100 px-2 py-1 rounded-full text-sm flex items-center gap-1"
-                    >
-                      {keyword.trim()}
-                      <HiX 
-                        className="cursor-pointer hover:text-purple-300" 
-                        onClick={() => removeKeyword(keyword.trim())}
-                      />
-                    </span>
-                  ))}
+              {isEditable && (
+                <div>
+                  <Label htmlFor="keywords" value={t('sessions.keywords')} className="text-white mb-2" />
+                  <TextInput
+                    id="keywords"
+                    name="keywords_input"
+                    placeholder={t('sessions.keywords_placeholder')}
+                    onKeyDown={handleKeywordKeyPress}
+                    className="bg-gray-700 text-white border-gray-600"
+                    disabled={!isEditable}
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sessionData.keywords.split(',').filter(Boolean).map((keyword) => (
+                      <span 
+                        key={keyword.trim()} 
+                        className="bg-purple-900 text-purple-100 px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                      >
+                        {keyword.trim()}
+                        {isEditable && (
+                          <HiX 
+                            className="cursor-pointer hover:text-purple-300" 
+                            onClick={() => removeKeyword(keyword.trim())}
+                          />
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {!isEditable && sessionData.keywords && (
+                <div>
+                  <Label htmlFor="keywords" value={t('sessions.keywords')} className="text-white mb-2" />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sessionData.keywords.split(',').filter(Boolean).map((keyword) => (
+                      <span 
+                        key={keyword.trim()} 
+                        className="bg-purple-900 text-purple-100 px-2 py-1 rounded-full text-sm"
+                      >
+                        {keyword.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {/* Detalles de fecha y hora */}
               <div className="flex flex-col md:flex-row justify-between gap-4 my-5">
@@ -636,8 +674,18 @@ const SessionPage: React.FC = () => {
                 
                 {/* Botones de acción a la derecha */}
                 <div className="flex gap-2">
-                  {/* Si es el creador de la sesión o es admin, mostrar botones de editar/eliminar */}
-                  {isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
+                  {/* Si no estamos en modo edición y el usuario es el mentor o admin, mostrar botón de editar */}
+                  {isExistingSession && !isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') && (
+                    <Button
+                      color="info"
+                      onClick={() => navigate(`/session/${id}?edit=true`)}
+                    >
+                      {t('common.edit')}
+                    </Button>
+                  )}
+                  
+                  {/* Si es el creador de la sesión o es admin y estamos en modo edición, mostrar botones de editar/eliminar */}
+                  {isExistingSession && isEditMode && (mentorInfo?.id === user?.id || user?.role === 'admin') ? (
                     <>
                       {/* Botón de eliminar */}
                       <Button
@@ -656,8 +704,8 @@ const SessionPage: React.FC = () => {
                         {loading ? t('common.saving') : t('common.save')}
                       </Button>
                     </>
-                  ) : isEditMode ? (
-                    /* Si no es el creador pero está en modo edición, mostrar botón según inscripción */
+                  ) : isExistingSession && !isEditMode ? (
+                    /* Si no es el creador pero está en modo visualización, mostrar botón según inscripción */
                     !isSessionPast() ? (
                       isUserEnrolled() ? (
                         <Button
@@ -778,4 +826,4 @@ const SessionPage: React.FC = () => {
   );
 };
 
-export default SessionPage; 
+export default SessionDetailsPage; 

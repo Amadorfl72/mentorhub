@@ -8,7 +8,7 @@ import SessionsPage from './pages/SessionsPage';
 import { AuthProvider } from './context/AuthContext';
 import GoogleCallback from './components/GoogleCallback';
 import PrivateRoute from './components/PrivateRoute';
-import SessionPage from './pages/SessionPage';
+import SessionDetailsPage from './pages/SessionDetailsPage';
 import { initCacheCleanup } from './services/imageCache';
 import AllSessionsPage from './pages/AllSessionsPage';
 import { verifyToken } from './services/authService';
@@ -81,8 +81,8 @@ const AppRoutes = () => {
           </PrivateRoute>
         } 
       />
-      <Route path="/session/new" element={<SessionPage />} />
-      <Route path="/session/:id" element={<SessionPage />} />
+      <Route path="/session/new" element={<SessionDetailsPage />} />
+      <Route path="/session/:id" element={<SessionDetailsPage />} />
       
       {/* Redirección por defecto */}
       <Route path="/" element={
