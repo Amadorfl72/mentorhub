@@ -41,6 +41,7 @@ import { fetchData } from "../services/apiService";
 import CachedImage from "../components/CachedImage";
 import { apiGet, testToken } from "../services/api";
 import { User } from "../context/AuthContext";
+import Linkify from "react-linkify";
 
 interface NotificationState {
   show: boolean;
@@ -1028,7 +1029,20 @@ const DashboardPage = () => {
 
                     <div className="mb-4 flex-grow">
                       <p className="text-gray-300">
-                        {truncateDescription(session.description)}
+                        <Linkify componentDecorator={(decoratedHref: string, decoratedText: string, key: number) => (
+                          <a 
+                            href={decoratedHref} 
+                            key={key} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {decoratedText}
+                          </a>
+                        )}>
+                          {truncateDescription(session.description)}
+                        </Linkify>
                         {session.description.length > 100 && (
                           <button
                             onClick={() => navigate(`/session/${session.id}`)}
