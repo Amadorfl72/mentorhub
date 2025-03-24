@@ -90,7 +90,7 @@
   },
   "common": {
     "logout": "Déconnexion",
-    "back_to_dashboard": "Retour au Dashboard",
+    "back_to_dashboard": "Retour au Tableau de Bord",
     "yes": "Oui",
     "no": "Non",
     "edit": "Modifier",
@@ -98,13 +98,16 @@
     "delete": "Supprimer",
     "save": "Enregistrer",
     "saving": "Enregistrement...",
-    "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session ?",
+    "delete_confirmation": "Êtes-vous sûr de vouloir supprimer cette session?",
     "search": "Rechercher des sessions...",
     "view": "Voir",
     "back": "Retour au Tableau de Bord",
     "enrol": "S'inscrire",
     "unenrol": "Se désinscrire",
-    "processing": "Traitement en cours..."
+    "processing": "Traitement en cours...",
+    "creating": "Création...",
+    "not_authorized": "Vous n'êtes pas autorisé à modifier cette session",
+    "redirecting": "Redirection vers le mode visualisation..."
   },
   "themeSwitch": {
     "easterEgg": {

@@ -51,9 +51,43 @@ const SessionDetailsPage: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
   
+  // Estado para el modal de confirmación de borrado
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  
+  // Estado para la información del mentor
+  const [mentorInfo, setMentorInfo] = useState<MentorInfo | null>(null);
+  const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
+
+  const { user } = useAuth();
+  
+  // Estado para mostrar mensaje de error de autorización
+  const [showAuthError, setShowAuthError] = useState<boolean>(false);
+  
+  // Verificar si el usuario actual es propietario o admin
+  const isOwnerOrAdmin = useMemo(() => {
+    if (!user || !mentorInfo) return false;
+    return mentorInfo.id === user.id || user?.role === 'admin';
+  }, [user, mentorInfo]);
+  
   // Verificar si estamos en modo edición (basado en un parámetro de URL)
   const queryParams = new URLSearchParams(location.search);
-  const isEditMode = queryParams.get('edit') === 'true';
+  const urlHasEditParam = queryParams.get('edit') === 'true';
+  
+  // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición
+  const isEditMode = urlHasEditParam && isOwnerOrAdmin;
+  
+  // Verificar si intentó acceder al modo edición sin autorización
+  useEffect(() => {
+    if (urlHasEditParam && !isOwnerOrAdmin && mentorInfo) {
+      setShowAuthError(true);
+      // Redirigir a la vista sin el parámetro de edición
+      setTimeout(() => {
+        navigate(`/session/${id}`, { replace: true });
+        // Ocultar la notificación después de redireccionar
+        setShowAuthError(false);
+      }, 3000);
+    }
+  }, [urlHasEditParam, isOwnerOrAdmin, mentorInfo, id, navigate]);
   
   // Los campos solo son editables si es una sesión nueva o si estamos en modo edición
   const isEditable = !isExistingSession || isEditMode;
@@ -68,15 +102,6 @@ const SessionDetailsPage: React.FC = () => {
     mentees: [],
   });
   
-  // Estado para el modal de confirmación de borrado
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  
-  // Estado para la información del mentor
-  const [mentorInfo, setMentorInfo] = useState<MentorInfo | null>(null);
-  const [loadingMentor, setLoadingMentor] = useState<boolean>(false);
-
-  const { user } = useAuth();
-
   // Añadir este estado para el modal de confirmación de desinscripción
   const [unenrolModal, setUnenrolModal] = useState<boolean>(false);
 
@@ -432,6 +457,17 @@ const SessionDetailsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* Mostrar mensaje de error de autorización si es necesario */}
+      {showAuthError && (
+        <div className="fixed top-4 right-4 z-50 bg-red-800 text-white px-4 py-3 rounded shadow-lg">
+          <div className="flex items-center">
+            <HiExclamation className="h-6 w-6 mr-2" />
+            <p>{t('common.not_authorized')}</p>
+          </div>
+          <p className="text-sm mt-1">{t('common.redirecting')}</p>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="bg-gray-800 shadow-md">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

@@ -110,7 +110,10 @@
     "back": "Volver al Dashboard",
     "enrol": "Inscribirse",
     "unenrol": "Desuscribirse",
-    "processing": "Procesando..."
+    "processing": "Procesando...",
+    "creating": "Creando...",
+    "not_authorized": "No estás autorizado para editar esta sesión",
+    "redirecting": "Redirigiendo al modo de visualización..."
   },
   "themeSwitch": {
     "easterEgg": {
