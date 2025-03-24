@@ -15,8 +15,11 @@ const mentorsCache: Record<number, MentorInfo> = {};
 
 // Función para obtener información de un mentor
 export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
+  // console.log(`getMentorInfo: Called for user ID ${mentorId}`);
+  
   // Si ya tenemos la información en caché, devolverla
   if (mentorsCache[mentorId]) {
+    // console.log(`getMentorInfo: Using cached info for ${mentorId}`);
     return mentorsCache[mentorId];
   }
   
@@ -27,11 +30,12 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
       const currentUser = JSON.parse(currentUserStr);
       // Si el usuario actual es el mentor que buscamos
       if (currentUser.id === mentorId) {
+        // console.log(`getMentorInfo: User ${mentorId} is current user`);
         const mentorInfo: MentorInfo = {
           id: currentUser.id,
           name: currentUser.name || currentUser.username || `Mentor ${mentorId}`,
           email: currentUser.email,
-          photoUrl: currentUser.photoUrl,
+          photoUrl: currentUser.photoUrl || generateAvatarUrl(currentUser.name || `User ${mentorId}`),
           photoBlob: currentUser.photoBlob,
           role: currentUser.role
         };
@@ -48,6 +52,7 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
       throw new Error('No authentication token found');
     }
     
+    // console.log(`getMentorInfo: Fetching from API for user ${mentorId}`);
     const response = await fetch(`${API_URL}/users/${mentorId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -61,12 +66,13 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
     }
     
     const userData = await response.json();
+    // console.log(`getMentorInfo: Received data for user ${mentorId}:`, userData);
     
     const mentorInfo: MentorInfo = {
       id: userData.id,
       name: userData.username || userData.name || `Mentor ${mentorId}`,
       email: userData.email,
-      photoUrl: userData.photoUrl,
+      photoUrl: userData.photoUrl || generateAvatarUrl(userData.name || `User ${mentorId}`),
       photoBlob: userData.photo_data,
       role: userData.role
     };
@@ -77,11 +83,12 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
   } catch (error) {
     console.error(`Error fetching mentor info for ID ${mentorId}:`, error);
     
-    // En caso de error, devolver información básica
+    // En caso de error, devolver información básica con avatar generado
+    const name = `User ${mentorId}`;
     const fallbackInfo: MentorInfo = {
       id: mentorId,
-      name: `Mentor ${mentorId}`,
-      photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
+      name: name,
+      photoUrl: generateAvatarUrl(name)
     };
     
     // Guardar en caché para evitar solicitudes repetidas
@@ -90,6 +97,15 @@ export const getMentorInfo = async (mentorId: number): Promise<MentorInfo> => {
     return fallbackInfo;
   }
 };
+
+// Función para generar URL de avatar con iniciales
+function generateAvatarUrl(name: string): string {
+  // Eliminar caracteres no alfanuméricos y espacios
+  const cleanName = name.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+  // Generar una URL de avatar con UI Avatars
+  const encodedName = encodeURIComponent(cleanName || 'User');
+  return `https://ui-avatars.com/api/?name=${encodedName}&background=random&color=fff&size=128`;
+}
 
 // Función para obtener información de varios mentores a la vez
 export const getMentorsInfo = async (mentorIds: number[]): Promise<Record<number, MentorInfo>> => {
@@ -128,7 +144,7 @@ export const getMentorsInfo = async (mentorIds: number[]): Promise<Record<number
 export const getAllUsers = async (): Promise<MentorInfo[]> => {
   try {
     // Como tenemos problemas de CORS, devolvemos un array vacío
-    console.warn('getAllUsers: Esta función no está disponible debido a problemas de CORS');
+    // console.warn('getAllUsers: Esta función no está disponible debido a problemas de CORS');
     return [];
   } catch (error) {
     console.error('Error fetching all users:', error);

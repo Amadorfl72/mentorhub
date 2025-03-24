@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Toast, Modal, Label, TextInput, Pagination } from 'flowbite-react';
+import { Button, Modal, Label, TextInput, Pagination, Toast } from 'flowbite-react';
 import { 
   HiSearch, 
   HiCalendar, 
@@ -9,16 +9,26 @@ import {
   HiCheck, 
   HiX, 
   HiExclamation,
-  HiOutlineFilter,
-  HiArrowLeft
+  HiArrowLeft,
+  HiDuplicate
 } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeSwitch from '../components/ThemeSwitch';
-import { getMentorSessions, deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions } from '../services/sessionService';
-import CachedImage from '../components/CachedImage';
+import { deleteSession, Session, getAllSessions, enrollMentee, unenrollMentee, getApprenticeSessions, duplicateSession } from '../services/sessionService';
 import { getMentorsInfo, MentorInfo } from '../services/userService';
+import { User } from '../context/AuthContext';
+import CachedImage from '../components/CachedImage';
+import Linkify from 'react-linkify';
+
+// Interfaz para una sesión enriquecida con información completa de mentees
+interface EnrichedSession extends Omit<Session, 'mentees'> {
+  // mentees puede ser tanto array de IDs (números) como array de Users
+  mentees: number[] | User[];
+  mentorName?: string;
+  mentorPhotoUrl?: string;
+}
 
 interface NotificationState {
   show: boolean;
@@ -31,6 +41,49 @@ const truncateDescription = (description: string, maxLength: number = 100) => {
   if (description.length <= maxLength) {
     return description;
   }
+  
+  // Expresión regular para detectar URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  // Encontrar todas las URLs en el texto
+  let match;
+  const urls: { index: number; length: number }[] = [];
+  
+  while ((match = urlRegex.exec(description)) !== null) {
+    urls.push({
+      index: match.index,
+      length: match[0].length
+    });
+  }
+  
+  // Si no hay URLs, truncar normalmente
+  if (urls.length === 0) {
+    return description.substring(0, maxLength).trim();
+  }
+  
+  // Comprobar si alguna URL cruza el punto de truncamiento
+  for (const url of urls) {
+    const urlStart = url.index;
+    const urlEnd = urlStart + url.length;
+    
+    // Si la URL cruza el punto de truncamiento
+    if (urlStart < maxLength && urlEnd > maxLength) {
+      // Opción 1: Truncar antes de la URL
+      if (urlStart > 15) { // Asegurar que hay suficiente texto antes
+        return description.substring(0, urlStart).trim();
+      }
+      // Opción 2: Incluir la URL completa y truncar después
+      else if (urlEnd < maxLength + 50) { // No extender demasiado
+        return description.substring(0, urlEnd).trim();
+      }
+      // Si la URL es muy larga, truncar en el punto original
+      else {
+        return description.substring(0, maxLength).trim();
+      }
+    }
+  }
+  
+  // Si no hay problemas con URLs, truncar normalmente
   return description.substring(0, maxLength).trim();
 };
 
@@ -39,8 +92,8 @@ const AllSessionsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<EnrichedSession[]>([]);
+  const [filteredSessions, setFilteredSessions] = useState<EnrichedSession[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showPastSessions, setShowPastSessions] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -52,6 +105,9 @@ const AllSessionsPage = () => {
   
   // Estado para almacenar información de mentores
   const [mentors, setMentors] = useState<Record<number, MentorInfo>>({});
+  
+  // Estado para almacenar información de usuarios (para los avatares de mentees)
+  const [userInfoMap, setUserInfoMap] = useState<Map<number, MentorInfo>>(new Map());
   
   // Añadir este estado para rastrear las sesiones en las que el usuario está inscrito
   const [userMenteeSessionIds, setUserMenteeSessionIds] = useState<Set<number>>(new Set());
@@ -80,86 +136,157 @@ const AllSessionsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; // Limitado a 6 registros por página
 
+  // Añadir estado para indicar que está duplicando una sesión
+  const [isDuplicating, setIsDuplicating] = useState<boolean>(false);
+
   // Función para obtener información básica del usuario (versión simplificada)
   const getUserInfo = async (userId: number) => {
-    // En lugar de hacer una llamada a la API, devolvemos un objeto con datos genéricos
-    return {
-      id: userId,
-      name: `Mentor ${userId}`,
-      email: `mentor${userId}@example.com`,
-      photoUrl: '',
-      role: 'mentor'
-    };
-  };
-
-  // Mover la definición de loadSessions fuera del useEffect
-  const loadSessions = async () => {
-    setLoading(true);
     try {
-      // Usar getAllSessions para obtener todas las sesiones con información completa
-      const allSessions = await getAllSessions();
-      
-      // Ordenar las sesiones por fecha (las más próximas primero)
-      const sortedSessions = allSessions.sort((a, b) => {
-        const dateA = new Date(a.scheduled_time).getTime();
-        const dateB = new Date(b.scheduled_time).getTime();
-        return dateA - dateB;
-      });
-      
-      setSessions(sortedSessions);
-      
-      // Si el usuario está autenticado, obtener sus sesiones como mentee
-      if (user && user.id) {
-        try {
-          const userMenteeSessions = await getApprenticeSessions();
-          // Guardar los IDs de las sesiones del usuario como mentee
-          const sessionIds = userMenteeSessions
-            .map(session => session.id)
-            .filter((id): id is number => id !== undefined);
-          
-          setUserMenteeSessionIds(new Set(sessionIds));
-        } catch (error) {
-          console.error('Error loading mentee sessions:', error);
-        }
+      // Intentar obtener la información real del usuario desde el servicio
+      const usersData = await getMentorsInfo([userId]);
+      if (usersData && usersData[userId]) {
+        return usersData[userId];
       }
       
-      // Obtener IDs de mentores únicos
-      const mentorIds = sortedSessions
-        .map(session => session.mentor_id)
-        .filter((id): id is number => id !== undefined);
-      
-      // Cargar información de mentores usando getMentorsInfo
-      if (mentorIds.length > 0) {
-        try {
-          const mentorsData = await getMentorsInfo(mentorIds);
-          setMentors(mentorsData);
-        } catch (error) {
-          console.error('Error loading mentors info:', error);
-          
-          // En caso de error, crear información genérica para todos los mentores
-          const fallbackMentorsData: Record<number, MentorInfo> = {};
-          for (const mentorId of mentorIds) {
-            fallbackMentorsData[mentorId] = {
-              id: mentorId,
-              name: `Mentor ${mentorId}`,
-              photoUrl: `https://ui-avatars.com/api/?name=Mentor+${mentorId}&background=random`
-            };
-          }
-          setMentors(fallbackMentorsData);
-        }
-      }
+      // Si no se puede obtener, devolver datos genéricos
+      return {
+        id: userId,
+        name: `User ${userId}`,
+        email: `user${userId}@example.com`,
+        photoUrl: '/images/default-avatar.svg',
+        role: 'apprentice'
+      };
     } catch (error) {
-      console.error('Error al cargar las sesiones:', error);
-      showNotification(t('sessions.load_error'), 'error');
-    } finally {
-      setLoading(false);
+      console.error(`Error fetching info for user ${userId}:`, error);
+      // En caso de error, devolver datos genéricos
+      return {
+        id: userId,
+        name: `User ${userId}`,
+        email: `user${userId}@example.com`,
+        photoUrl: '/images/default-avatar.svg',
+        role: 'apprentice'
+      };
     }
   };
+
+  // Mover la definición de loadSessions fuera del useEffect y envolverla en useCallback
+  const loadSessions = useCallback(async () => {
+    let fetchedSessions: Session[] = [];
+    try {
+      // Verificar que el usuario existe
+      if (!user) {
+        console.error('User is not authenticated');
+        return;
+      }
+
+      // Obtener todas las sesiones independientemente del rol del usuario
+      fetchedSessions = await getAllSessions();
+      // console.log('Fetched sessions:', fetchedSessions);
+
+      // Recopilar IDs de mentores
+      const mentorIds: number[] = fetchedSessions
+        .map(session => session.mentor_id)
+        .filter((id): id is number => id !== undefined);
+
+      // Enrich sessions with mentor information
+      const mentorInfos = await getMentorsInfo(mentorIds);
+      // Guardar información de mentores en el estado
+      setMentors(mentorInfos);
+      
+      // Process sessions with enriched data
+      const enrichedSessions = fetchedSessions.map(session => {
+        const mentorInfo = mentorInfos[session.mentor_id];
+        
+        // No transformamos el campo mentees, mantenemos el formato original
+        return {
+          ...session,
+          mentorName: mentorInfo?.name || 'Unknown Mentor',
+          mentorPhotoUrl: mentorInfo?.photoUrl || '/images/default-avatar.svg',
+          // Mantener el formato original de mentees
+          mentees: session.mentees || []
+        } as EnrichedSession;
+      });
+
+      // Recopilar IDs de mentees para obtener su información
+      const menteeIds = new Set<number>();
+      enrichedSessions.forEach(session => {
+        if (session.mentees && Array.isArray(session.mentees)) {
+          session.mentees.forEach(mentee => {
+            if (typeof mentee === 'object' && 'id' in mentee) {
+              const id = Number(mentee.id);
+              if (id) menteeIds.add(id);
+            } else {
+              const id = Number(mentee);
+              if (id) menteeIds.add(id);
+            }
+          });
+        }
+      });
+
+      // console.log('Collected mentee IDs:', Array.from(menteeIds));
+
+      // Obtener información de todos los mentees de una sola vez
+      if (menteeIds.size > 0) {
+        try {
+          const menteeIdsArray = Array.from(menteeIds);
+          const menteesData = await getMentorsInfo(menteeIdsArray);
+          // console.log('Fetched mentee data:', menteesData);
+          
+          // Crear un mapa con la información obtenida
+          const userInfoMapTemp = new Map<number, MentorInfo>();
+          menteeIdsArray.forEach(id => {
+            if (menteesData[id]) {
+              userInfoMapTemp.set(id, menteesData[id]);
+            }
+          });
+          
+          // Actualizar el estado con la información de los mentees
+          setUserInfoMap(userInfoMapTemp);
+          // console.log('Updated userInfoMap with', userInfoMapTemp.size, 'entries');
+        } catch (error) {
+          console.error('Error fetching mentee information from API:', error);
+        }
+      }
+
+      setSessions(enrichedSessions as EnrichedSession[]);
+      setFilteredSessions(enrichedSessions as EnrichedSession[]);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      setNotification({ show: true, message: 'Failed to load sessions. Please try again later.', type: 'error' });
+      setSessions([]);
+      setLoading(false);
+    }
+  }, [user]); // Solo depende de user
 
   // Cargar las sesiones al montar el componente
   useEffect(() => {
     loadSessions();
-  }, [t]);
+
+    // Si el usuario está autenticado, también cargar las sesiones donde está inscrito
+    if (user?.id) {
+      const loadUserSessions = async () => {
+        try {
+          // Obtener las sesiones donde el usuario es mentee
+          const userMenteeSessions = await getApprenticeSessions();
+          
+          // Actualizar el conjunto de IDs de sesiones del usuario como mentee
+          if (userMenteeSessions && userMenteeSessions.length > 0) {
+            const sessionIds = userMenteeSessions
+              .map(session => session.id)
+              .filter((id): id is number => id !== undefined);
+            
+            setUserMenteeSessionIds(new Set(sessionIds));
+            // console.log('User is enrolled in sessions:', sessionIds);
+          }
+        } catch (error) {
+          console.error('Error loading user mentee sessions:', error);
+        }
+      };
+      
+      loadUserSessions();
+    }
+  }, [user?.id, loadSessions]);
 
   // Filtrar las sesiones cuando cambia el estado de showPastSessions, searchTerm o sessions
   useEffect(() => {
@@ -305,6 +432,55 @@ const AllSessionsPage = () => {
         return newSet;
       });
       
+      // Obtener la información completa del usuario si es necesario
+      let userDetails = user;
+      
+      // Si falta algún dato importante del usuario, intentar obtenerlo
+      if (!user.photoUrl || !user.email) {
+        try {
+          const usersData = await getMentorsInfo([userId]);
+          if (usersData && usersData[userId]) {
+            const userInfo = usersData[userId];
+            userDetails = {
+              ...user,
+              photoUrl: userInfo.photoUrl || user.photoUrl || '',
+              email: userInfo.email || user.email || '',
+              role: userInfo.role || user.role || 'APPRENTICE'
+            };
+          }
+        } catch (error) {
+          console.error('Error al obtener detalles del usuario:', error);
+          // Continuar con los datos disponibles si hay un error
+        }
+      }
+      
+      // Actualizar inmediatamente las sesiones locales para reflejar la inscripción
+      setSessions(prevSessions => {
+        return prevSessions.map(session => {
+          if (session.id === sessionId) {
+            // Crear un objeto mentee completo que cumpla con la interfaz User
+            const newMentee: User = {
+              id: userId,
+              name: userDetails.name || 'Unknown User',
+              photoUrl: userDetails.photoUrl || '/images/default-avatar.svg', // Asegurar que siempre hay una URL
+              email: userDetails.email || 'no-email@example.com',
+              role: userDetails.role || 'APPRENTICE'
+            };
+            
+            // console.log("Añadiendo nuevo mentee con foto:", newMentee.photoUrl);
+            
+            // Añadir el nuevo mentee a la lista existente
+            const updatedMentees = [...(Array.isArray(session.mentees) ? (session.mentees as any[]) : []), newMentee];
+            
+            return {
+              ...session,
+              mentees: updatedMentees
+            } as EnrichedSession;
+          }
+          return session;
+        });
+      });
+      
       // Mostrar notificación de éxito
       showNotification(t('sessions.enrol_success'), 'success');
       
@@ -319,7 +495,7 @@ const AllSessionsPage = () => {
   };
 
   // Añadir una función para verificar si el usuario está inscrito en la sesión
-  const isUserEnrolled = (session: Session): boolean => {
+  const isUserEnrolled = (session: EnrichedSession): boolean => {
     if (!user || !user.id || !session || !session.id) {
       return false;
     }
@@ -333,10 +509,15 @@ const AllSessionsPage = () => {
     
     // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
     if (session.mentees && session.mentees.length > 0) {
-      return session.mentees.some(mentee => 
-        // Asegurarse de comparar números con números para evitar problemas con tipos
-        mentee && mentee.id && Number(mentee.id) === userId
-      );
+      return session.mentees.some(mentee => {
+        // Si es un objeto User, comparar con mentee.id
+        if (typeof mentee === 'object' && 'id' in mentee) {
+          const menteeId = typeof mentee.id === 'string' ? Number(mentee.id) : mentee.id;
+          return menteeId === userId;
+        }
+        // Si es un número, comparar directamente
+        return Number(mentee) === userId;
+      });
     }
     
     return false;
@@ -388,6 +569,31 @@ const AllSessionsPage = () => {
         return newSet;
       });
       
+      // Actualizar inmediatamente las sesiones locales para reflejar la desinscripción
+      setSessions(prevSessions => {
+        return prevSessions.map(session => {
+          if (session.id === sessionId) {
+            // Filtrar el mentee con el ID del usuario de manera segura para tipos
+            const updatedMentees = Array.isArray(session.mentees)
+              ? (session.mentees as any[]).filter(mentee => {
+                  // Si es un objeto User, comparar su ID
+                  if (typeof mentee === 'object' && 'id' in mentee) {
+                    return Number(mentee.id) !== userId;
+                  }
+                  // Si es un número, comparar directamente
+                  return Number(mentee) !== userId;
+                })
+              : [];
+            
+            return {
+              ...session,
+              mentees: updatedMentees
+            } as EnrichedSession;
+          }
+          return session;
+        });
+      });
+      
       // Mostrar notificación de éxito
       showNotification(t('sessions.unenrol_success'), 'success');
       
@@ -400,6 +606,26 @@ const AllSessionsPage = () => {
       setLoading(false);
       // Cerrar el modal
       cancelUnenrol();
+    }
+  };
+
+  // Función para manejar la duplicación de sesiones
+  const handleDuplicate = async (sessionId: number) => {
+    try {
+      setIsDuplicating(true);
+      
+      // Llamar al servicio para duplicar la sesión
+      const duplicatedSession = await duplicateSession(sessionId);
+      
+      // Mostrar notificación de éxito
+      showNotification(t('sessions.duplicate_success'), 'success');
+      
+      // Navegar a la página de edición de la sesión duplicada con el parámetro edit=true
+      navigate(`/session/${duplicatedSession.id}?edit=true`);
+    } catch (error) {
+      console.error('Error al duplicar la sesión:', error);
+      showNotification(t('sessions.duplicate_error'), 'error');
+      setIsDuplicating(false);
     }
   };
 
@@ -562,18 +788,29 @@ const AllSessionsPage = () => {
                     className={`bg-gray-800 rounded-lg p-5 shadow h-full flex flex-col ${isPast ? 'opacity-70' : ''}`}
                   >
                     {/* Título de la sesión */}
-                    <h3 className="text-xl font-semibold mb-3">
+                    <h3 
+                      className="text-lg font-bold mb-1 cursor-pointer hover:underline tracking-tight text-white"
+                      onClick={() => navigate(`/session/${session.id}`)}
+                    >
                       {session.title}
-                      {isPast && (
-                        <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                          {t('sessions.past')}
-                        </span>
-                      )}
                     </h3>
                     
                     <div className="mb-4 flex-grow">
                       <p className="text-gray-300">
-                        {truncateDescription(session.description)}
+                        <Linkify componentDecorator={(decoratedHref: string, decoratedText: string, key: number) => (
+                          <a 
+                            href={decoratedHref} 
+                            key={key} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {decoratedText}
+                          </a>
+                        )}>
+                          {truncateDescription(session.description)}
+                        </Linkify>
                         {session.description.length > 100 && (
                           <button 
                             onClick={() => navigate(`/session/${session.id}`)}
@@ -608,7 +845,7 @@ const AllSessionsPage = () => {
                       </div>
                       <div className="flex items-center">
                         <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
-                        <span>Max: {session.max_attendees}</span>
+                        <span>{session.mentees ? session.mentees.length : 0}/{session.max_attendees}</span>
                       </div>
                     </div>
                     
@@ -617,80 +854,121 @@ const AllSessionsPage = () => {
                       {/* Información del mentor */}
                       <div className="flex items-center mt-3 mb-4">
                         <div className="flex-shrink-0">
-                          {mentorInfo && (
-                            <CachedImage 
-                              src={mentorInfo.photoUrl || ''}
-                              alt={mentorInfo.name}
-                              className="w-8 h-8 rounded-full"
-                              fallbackSrc={`https://ui-avatars.com/api/?name=${encodeURIComponent(mentorInfo.name)}&background=random`}
-                              userId={session.mentor_id}
-                            />
-                          )}
+                          <CachedImage 
+                            src={session.mentorPhotoUrl || '/images/default-avatar.svg'}
+                            alt={session.mentorName || t('sessions.unknown_mentor')}
+                            className="w-8 h-8 rounded-full"
+                            fallbackSrc="/images/default-avatar.svg"
+                            userId={session.mentor_id}
+                          />
                         </div>
                         <div className="ml-3">
                           <p className="text-sm font-medium text-gray-300">
-                            {mentorInfo ? mentorInfo.name : t('sessions.unknown_mentor')}
+                            {session.mentorName || (mentorInfo && mentorInfo.name) || t('sessions.unknown_mentor')}
                           </p>
                         </div>
                       </div>
                       
                       {/* Botones de acción */}
                       <div className="flex gap-2">
-                        <Button 
-                          size="xs" 
-                          color="light"
-                          onClick={() => navigate(`/session/${session.id}`)}
-                        >
-                          {t('common.view')}
-                        </Button>
+                        {/* Si el usuario es el mentor de la sesión o es admin, mostrar botón de duplicar */}
+                        {(session.mentor_id === user?.id || user?.role === 'admin') && (
+                          <Button
+                            size="xs"
+                            color="purple"
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                              e.stopPropagation();
+                              handleDuplicate(session.id!);
+                            }}
+                            disabled={loading || isDuplicating}
+                            title={t('sessions.duplicate')}
+                          >
+                            <HiDuplicate className="h-4 w-4" />
+                          </Button>
+                        )}
                         
-                        {/* Si el usuario es el mentor de la sesión o es admin, mostrar botones de editar/eliminar */}
-                        {(session.mentor_id === user?.id || user?.role === 'admin') ? (
-                          <>
+                        {/* Si el usuario no es el mentor y la sesión no ha pasado, mostrar botón según inscripción */}
+                        {session.mentor_id !== user?.id && !isPast ? (
+                          isUserEnrolled(session) ? (
                             <Button 
                               size="xs" 
-                              color="light"
-                              onClick={() => navigate(`/session/${session.id}`)}
+                              color="warning"
+                              onClick={() => confirmUnenrol(session.id!)}
+                              disabled={loading}
                             >
-                              {t('common.edit')}
+                              {t('common.unenrol')}
                             </Button>
-                            <Button 
-                              size="xs" 
-                              color="failure"
-                              onClick={() => confirmDelete(session.id!)}
-                            >
-                              {t('common.delete')}
-                            </Button>
-                          </>
-                        ) : (
-                          /* Si no es el mentor ni admin y la sesión no ha pasado, mostrar botón según inscripción */
-                          !isSessionPast(session.scheduled_time) ? (
-                            isUserEnrolled(session) ? (
-                              <Button 
-                                size="xs" 
-                                color="warning"
-                                onClick={() => confirmUnenrol(session.id!)}
-                                disabled={loading}
-                              >
-                                {t('common.unenrol')}
-                              </Button>
-                            ) : (
-                              <Button 
-                                size="xs" 
-                                color="success"
-                                onClick={() => handleEnrol(session.id!)}
-                                disabled={loading}
-                              >
-                                {t('common.enrol')}
-                              </Button>
-                            )
                           ) : (
-                            /* Si la sesión ya pasó, mostrar un badge de "Pasada" */
+                            <Button 
+                              size="xs" 
+                              color="success"
+                              onClick={() => handleEnrol(session.id!)}
+                              disabled={loading}
+                            >
+                              {t('common.enrol')}
+                            </Button>
+                          )
+                        ) : (
+                          /* Si la sesión ya pasó y el usuario no es el mentor ni admin, mostrar un badge */
+                          !isPast || session.mentor_id === user?.id || user?.role === 'admin' ? null : (
                             <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded">
                               {t('sessions.past')}
                             </span>
                           )
                         )}
+                      </div>
+                    </div>
+
+                    {/* Añadir fila de mentees y eliminar contador duplicado */}
+                    <div className="flex items-center justify-start mt-1 pt-2 border-t border-gray-700">
+                      <div className="flex items-center">
+                        <span className="text-xs text-gray-400 mr-2">{t('sessions.attendees')}:</span>
+                        <div className="flex -space-x-2">
+                          {session.mentees && session.mentees.length > 0 ? (
+                            <>
+                              {session.mentees.slice(0, 5).map((mentee, index) => {
+                                // Determinar si mentee es un número (ID) o un objeto User
+                                let menteeId: number | undefined = undefined;
+                                let photoUrl: string = '/images/default-avatar.svg';
+                                let name: string = `Mentee ${index}`;
+                                
+                                if (typeof mentee === 'object' && 'id' in mentee) {
+                                  menteeId = mentee.id ? Number(mentee.id) : undefined;
+                                  photoUrl = mentee.photoUrl || '/images/default-avatar.svg';
+                                  name = mentee.name || `Mentee ${index}`;
+                                  // console.log(`Rendering mentee object: ID=${menteeId}, photo=${photoUrl}, name=${name}`);
+                                } else {
+                                  // Es un ID numérico
+                                  menteeId = Number(mentee);
+                                  // Buscar la información del usuario si está disponible
+                                  const menteeInfo = userInfoMap.get(menteeId);
+                                  photoUrl = menteeInfo?.photoUrl || '/images/default-avatar.svg';
+                                  name = menteeInfo?.name || `User ${menteeId}`;
+                                  // console.log(`Rendering mentee ID ${menteeId}: info=${JSON.stringify(menteeInfo)}, photo=${photoUrl}, name=${name}`);
+                                }
+                                
+                                return (
+                                  <div key={`${menteeId || index}-${index}`} className="relative z-10" style={{ zIndex: 5 - index }}>
+                                    <CachedImage 
+                                      src={photoUrl || '/images/default-avatar.svg'}
+                                      alt={name}
+                                      className="w-6 h-6 rounded-full border border-gray-800"
+                                      fallbackSrc="/images/default-avatar.svg"
+                                      userId={menteeId}
+                                    />
+                                  </div>
+                                );
+                              })}
+                              {session.mentees.length > 5 && (
+                                <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-xs text-white border border-gray-800 relative z-0">
+                                  +{session.mentees.length - 5}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500">{t('sessions.no_attendees')}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

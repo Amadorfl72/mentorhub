@@ -48,7 +48,22 @@
     "enrol_error": "Error enrolling in the session",
     "unenrol_success": "Successfully unenrolled from the session",
     "unenrol_error": "Error unenrolling from the session",
-    "unenrol_confirmation": "Are you sure you want to unenroll from session: {{title}}?"
+    "unenrol_confirmation": "Are you sure you want to unenroll from session: {{title}}?",
+    "attendees": "Attendees",
+    "no_attendees": "No attendees yet",
+    "places": "places",
+    "mentor": "Mentor",
+    "unknown_mentor": "Unknown Mentor",
+    "view": "View",
+    "all": "All",
+    "as_mentor": "As Mentor",
+    "as_mentee": "As Mentee",
+    "scheduled_date": "Scheduled date",
+    "scheduled_time": "Scheduled time",
+    "session_details": "Session Details",
+    "duplicate": "Duplicate",
+    "duplicate_success": "Session duplicated successfully",
+    "duplicate_error": "Error duplicating session"
   },
   "welcome": "Welcome to the Application",
   "app": {
@@ -98,7 +113,10 @@
     "back": "Back to Dashboard",
     "enrol": "Enrol",
     "unenrol": "Unenrol",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "creating": "Creating...",
+    "not_authorized": "You are not authorized to edit this session",
+    "redirecting": "Redirecting to view mode..."
   },
   "themeSwitch": {
     "easterEgg": {

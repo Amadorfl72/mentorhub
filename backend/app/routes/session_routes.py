@@ -25,6 +25,7 @@ def get_sessions():
         query = query.join(session_mentees).filter(session_mentees.c.mentee_id == mentee_id)
     
     # Ejecutar la consulta
+    print(query)
     sessions = query.all()
     return jsonify([session.to_dict() for session in sessions])
 
