@@ -9,6 +9,7 @@ import ThemeSwitch from '../components/ThemeSwitch';
 import { verifyToken } from '../services/authService';
 import { useAuth, User } from '../context/AuthContext';
 import CachedImage from '../components/CachedImage';
+import Linkify from 'react-linkify';
 
 interface SessionFormData {
   title: string;
@@ -530,15 +531,33 @@ const SessionDetailsPage: React.FC = () => {
               
               <div>
                 <Label htmlFor="description" value={t('sessions.description_label')} className="text-white mb-2" />
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={sessionData.description}
-                  onChange={handleChange}
-                  rows={4}
-                  className="bg-gray-700 text-white border-gray-600"
-                  disabled={!isEditable}
-                />
+                {isEditable ? (
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={sessionData.description}
+                    onChange={handleChange}
+                    rows={4}
+                    className="bg-gray-700 text-white border-gray-600"
+                    disabled={!isEditable}
+                  />
+                ) : (
+                  <div className="bg-gray-700 text-white border border-gray-600 rounded-lg p-3 whitespace-pre-line">
+                    <Linkify componentDecorator={(decoratedHref: string, decoratedText: string, key: number) => (
+                      <a 
+                        href={decoratedHref} 
+                        key={key} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 hover:underline"
+                      >
+                        {decoratedText}
+                      </a>
+                    )}>
+                      {sessionData.description}
+                    </Linkify>
+                  </div>
+                )}
               </div>
               
               <div>
