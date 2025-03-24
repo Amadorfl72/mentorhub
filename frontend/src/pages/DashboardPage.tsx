@@ -59,7 +59,7 @@ interface MentorInfo {
 }
 
 // Interfaz para sesiones enriquecidas con información de usuario
-interface EnrichedSession extends Omit<Session, 'mentees'> {
+interface EnrichedSession extends Omit<Session, "mentees"> {
   mentor: MentorInfo | null;
   // mentees puede ser tanto array de IDs (números) como array de Users
   mentees: number[] | User[];
@@ -177,7 +177,7 @@ const DashboardPage = () => {
   // Definir la función loadSessions con useCallback para evitar recreaciones innecesarias
   const loadSessions = useCallback(async () => {
     if (!user) {
-      console.warn("No user data, cannot load sessions");
+      console.warn('No user data, cannot load sessions');
       return;
     }
 
@@ -311,7 +311,7 @@ const DashboardPage = () => {
               ? userInfoMap.get(session.mentor_id) || null
               : null,
             // Mantener el mismo formato para mentees en todas las sesiones
-            mentees: session.mentees || []
+            mentees: session.mentees || [],
           } as EnrichedSession;
         });
 
@@ -353,13 +353,13 @@ const DashboardPage = () => {
               ? mentorInfoMap.get(session.mentor_id) || null
               : null,
             // No añadimos mentees aquí porque no son necesarios para la sección "Upcoming Sessions"
-            mentees: session.mentees || [],
+            mentees: session.mentees || []
           } as EnrichedSession;
         });
 
         // Filtrar solo las sesiones futuras y ordenarlas por fecha
         const upcoming = enrichedAllSessions
-          .filter((session) => !isSessionPast(session.scheduled_time))
+          .filter(session => !isSessionPast(session.scheduled_time))
           .sort((a, b) => {
             const dateA = new Date(a.scheduled_time).getTime();
             const dateB = new Date(b.scheduled_time).getTime();
@@ -379,7 +379,7 @@ const DashboardPage = () => {
       setSessions([]);
       setUpcomingSessions([]);
     }
-  }, [user, getUserInfo, isSessionPast]);
+  }, [user, getUserInfo]);
 
   // Efecto para verificar autenticación y cargar sesiones
   useEffect(() => {
@@ -457,17 +457,17 @@ const DashboardPage = () => {
           if (session.id && userMenteeSessionIds.has(session.id)) {
             return true;
           }
-          
+
           // Comprobar si el usuario está en la lista de mentees
           if (session.mentees && session.mentees.length > 0) {
-            return session.mentees.some(mentee => {
-              if (typeof mentee === 'object' && 'id' in mentee) {
+            return session.mentees.some((mentee) => {
+              if (typeof mentee === "object" && "id" in mentee) {
                 return Number(mentee.id) === userId;
               }
               return Number(mentee) === userId;
             });
           }
-          
+
           return false;
         });
       }
@@ -693,8 +693,8 @@ const DashboardPage = () => {
 
     // Verificar si la sesión tiene mentees y si el usuario actual está entre ellos
     if (session.mentees && session.mentees.length > 0) {
-      return session.mentees.some(mentee => {
-        if (typeof mentee === 'object' && 'id' in mentee) {
+      return session.mentees.some((mentee) => {
+        if (typeof mentee === "object" && "id" in mentee) {
           return Number(mentee.id) === userId;
         }
         return Number(mentee) === userId;
@@ -1071,7 +1071,10 @@ const DashboardPage = () => {
                       <div className="flex items-center">
                         <HiUsers className="mr-1.5 h-4 w-4 text-green-400" />
                         <span>
-                          {Array.isArray(session.mentees) ? session.mentees.length : 0}/{session.max_attendees}
+                          {Array.isArray(session.mentees)
+                            ? session.mentees.length
+                            : 0}
+                          /{session.max_attendees}
                         </span>
                       </div>
                     </div>
@@ -1142,35 +1145,45 @@ const DashboardPage = () => {
 
                     {/* Solo mostrar avatares de asistentes de forma simplificada */}
                     <div className="flex items-center mt-2 pt-2 border-t border-gray-700">
-                      <span className="text-xs text-gray-400 mr-2">{t("sessions.attendees")}:</span>
+                      <span className="text-xs text-gray-400 mr-2">
+                        {t("sessions.attendees")}:
+                      </span>
                       <div className="flex -space-x-2">
-                        {Array.isArray(session.mentees) && session.mentees.length > 0 ? (
+                        {Array.isArray(session.mentees) &&
+                        session.mentees.length > 0 ? (
                           <>
-                            {session.mentees.slice(0, 5).map((mentee, index) => {
-                              // Determinar si mentee es un número (ID) o un objeto User
-                              const menteeId = typeof mentee === 'object' && mentee.id ? Number(mentee.id) : Number(mentee);
-                              const menteeInfo = userInfoMap.get(menteeId);
-                              
-                              // Si es un objeto User, usar sus propiedades directamente
-                              const photoUrl = typeof mentee === 'object' && mentee.photoUrl 
-                                ? mentee.photoUrl 
-                                : menteeInfo?.photoUrl || "";
-                                
-                              const name = typeof mentee === 'object' && mentee.name 
-                                ? mentee.name 
-                                : menteeInfo?.name || `User ${menteeId}`;
-                                
-                              return (
-                                <CachedImage
-                                  key={`${menteeId}-${index}`}
-                                  src={photoUrl}
-                                  alt={name}
-                                  className="w-6 h-6 rounded-full border border-gray-700"
-                                  fallbackSrc="/images/default-avatar.svg"
-                                  userId={menteeId}
-                                />
-                              );
-                            })}
+                            {session.mentees
+                              .slice(0, 5)
+                              .map((mentee, index) => {
+                                // Determinar si mentee es un número (ID) o un objeto User
+                                const menteeId =
+                                  typeof mentee === "object" && mentee.id
+                                    ? Number(mentee.id)
+                                    : Number(mentee);
+                                const menteeInfo = userInfoMap.get(menteeId);
+
+                                // Si es un objeto User, usar sus propiedades directamente
+                                const photoUrl =
+                                  typeof mentee === "object" && mentee.photoUrl
+                                    ? mentee.photoUrl
+                                    : menteeInfo?.photoUrl || "";
+
+                                const name =
+                                  typeof mentee === "object" && mentee.name
+                                    ? mentee.name
+                                    : menteeInfo?.name || `User ${menteeId}`;
+
+                                return (
+                                  <CachedImage
+                                    key={`${menteeId}-${index}`}
+                                    src={photoUrl}
+                                    alt={name}
+                                    className="w-6 h-6 rounded-full border border-gray-700"
+                                    fallbackSrc="/images/default-avatar.svg"
+                                    userId={menteeId}
+                                  />
+                                );
+                              })}
                             {session.mentees.length > 5 && (
                               <div className="w-6 h-6 rounded-full bg-gray-600 border border-gray-700 flex items-center justify-center text-xs">
                                 +{session.mentees.length - 5}
@@ -1178,7 +1191,9 @@ const DashboardPage = () => {
                             )}
                           </>
                         ) : (
-                          <span className="text-xs text-gray-500">{t("sessions.no_attendees")}</span>
+                          <span className="text-xs text-gray-500">
+                            {t("sessions.no_attendees")}
+                          </span>
                         )}
                       </div>
                     </div>
