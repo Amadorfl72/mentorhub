@@ -108,7 +108,8 @@
     "enrol": "S'inscrire",
     "unenrol": "Se désinscrire",
     "processing": "Traitement en cours...",
-    "creating": "Création...",
+    "creating": "Création en cours...",
+    "create": "Créer",
     "not_authorized": "Vous n'êtes pas autorisé à modifier cette session",
     "redirecting": "Redirection vers le mode visualisation..."
   },

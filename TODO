@@ -1,2 +1,17 @@
 
 - Añadir opcion de duplicar. 
+
+
+#Resend script 
+
+import resend
+
+resend.api_key = RESEND_API_KEY
+
+r = resend.Emails.send({
+  "from": "onboarding@resend.dev",
+  "to": "amador.fernandez@amenitiz.com",
+  "subject": "Hello World",
+  "html": "<p>Congrats on sending your <strong>first email</strong>!</p>"
+})
+

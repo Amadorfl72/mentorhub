@@ -115,6 +115,7 @@
     "unenrol": "Unenrol",
     "processing": "Processing...",
     "creating": "Creating...",
+    "create": "Create",
     "not_authorized": "You are not authorized to edit this session",
     "redirecting": "Redirecting to view mode..."
   },

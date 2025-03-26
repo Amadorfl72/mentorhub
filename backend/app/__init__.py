@@ -3,8 +3,8 @@ import sys
 from flask import Flask
 from flask_cors import CORS
 from flask_dance.contrib.google import make_google_blueprint
-from .extensions import db, migrate, mail
-from .routes import auth_bp, user_bp, session_bp, stats_bp
+from .extensions import db, migrate
+from .routes import auth_bp, user_bp, session_bp, stats_bp, email_bp
 from config import Config
 from dotenv import load_dotenv
 
@@ -28,12 +28,12 @@ def create_app(config_class=Config):
     
     db.init_app(app)
     migrate.init_app(app, db)
-    mail.init_app(app)
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(session_bp)
     app.register_blueprint(stats_bp)
+    app.register_blueprint(email_bp)
 
     return app
 

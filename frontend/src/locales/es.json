@@ -115,6 +115,7 @@
     "unenrol": "Desuscribirse",
     "processing": "Procesando...",
     "creating": "Creando...",
+    "create": "Crear",
     "not_authorized": "No estás autorizado para editar esta sesión",
     "redirecting": "Redirigiendo al modo de visualización..."
   },
