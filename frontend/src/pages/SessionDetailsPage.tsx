@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
+import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session, sendSessionNotifications } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers, HiCheckCircle } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
@@ -271,15 +271,20 @@ const SessionDetailsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      alert('Debes iniciar sesión para crear o editar una sesión');
-      return;
-    }
+    // Solo permitir el envío si los campos son editables
+    if (!isEditable) return;
     
+    setLoading(true);
     try {
-      setLoading(true);
+      // Determinar si esta es una sesión duplicada
+      // Revisamos por " - Copy" en el título y también usamos un parámetro de URL como respaldo
+      const queryParams = new URLSearchParams(location.search);
+      const isFromDuplicate = queryParams.get('fromDuplicate') === 'true';
+      const titleHasCopy = sessionData.title.includes(' - Copy');
       
-      // Formatear los datos del formulario
+      // La sesión es duplicada si el título contiene " - Copy" o si viene del parámetro fromDuplicate
+      const isDuplicated = titleHasCopy || isFromDuplicate;
+      
       interface FormData {
         title: string;
         description: string;
@@ -289,27 +294,49 @@ const SessionDetailsPage: React.FC = () => {
         keywords: string;
       }
       
-      const formattedData: FormData = {
+      const formData: FormData = {
         title: sessionData.title,
         description: sessionData.description,
-        mentor_id: user?.id || 0, // Usar 0 o algún valor por defecto si id es undefined
+        mentor_id: user?.id || 0,
         scheduled_time: sessionData.scheduled_time,
-        max_attendees: parseInt(sessionData.max_attendees.toString()),
-        keywords: sessionData.keywords,
+        max_attendees: sessionData.max_attendees,
+        keywords: sessionData.keywords
       };
       
-      if (isEditMode && id) {
-        // Usar el tipo correcto para updateSession
-        await updateSession(parseInt(id), formattedData as Partial<Session>);
+      if (!isExistingSession) {
+        // Crear nueva sesión
+        const createdSession = await createSession(formData);
+        showSuccess(t('common.create_success'));
+        navigate(`/session/${createdSession.id}`);
       } else {
-        await createSession(formattedData as any);
+        // Actualizar sesión existente
+        await updateSession(parseInt(id!), formData);
+        
+        // Si es una sesión duplicada, enviar notificaciones después de guardar
+        if (isDuplicated) {
+          try {
+            await sendSessionNotifications(parseInt(id!));
+            console.log('Notificaciones enviadas para la sesión duplicada');
+            
+            // Si tenemos el parámetro fromDuplicate, lo quitamos para que no se envíen notificaciones en ediciones futuras
+            if (isFromDuplicate) {
+              navigate(`/session/${id}`, { replace: true });
+            }
+          } catch (error) {
+            console.error('Error al enviar notificaciones:', error);
+          }
+        }
+        
+        showSuccess(t('common.save_success'));
+        
+        // Solo redirigimos si no hemos redirigido ya en el bloque anterior
+        if (!isDuplicated || !isFromDuplicate) {
+          navigate(`/session/${id}`);
+        }
       }
-      
-      // Redirigir al dashboard después de crear/editar
-      navigate('/dashboard');
     } catch (error) {
       console.error('Error al guardar la sesión:', error);
-      alert('Error al guardar la sesión');
+      // Aquí podrías mostrar un mensaje de error
     } finally {
       setLoading(false);
     }

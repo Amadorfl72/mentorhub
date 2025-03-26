@@ -110,6 +110,8 @@
     "processing": "Traitement en cours...",
     "creating": "Création en cours...",
     "create": "Créer",
+    "create_success": "Créé avec succès",
+    "save_success": "Modifications enregistrées avec succès",
     "not_authorized": "Vous n'êtes pas autorisé à modifier cette session",
     "redirecting": "Redirection vers le mode visualisation..."
   },

@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from ..extensions import db
 from ..models.session import MentorshipSession, session_mentees
 from ..models.user import User
-from ..utils.auth import login_required
+from ..utils.auth import login_required, get_current_user
 from ..utils.notifications import send_email
 import os
 import logging
@@ -45,6 +45,14 @@ def get_session(session_id):
 @login_required
 def create_session():
     data = request.json
+    
+    # Parámetro que indica si se debe enviar notificación (por defecto True)
+    send_notification = data.get('send_notification', True)
+    
+    # Eliminar el parámetro send_notification del objeto de datos si existe
+    if 'send_notification' in data:
+        del data['send_notification']
+    
     new_session = MentorshipSession(
         title=data['title'],
         description=data['description'],
@@ -56,16 +64,45 @@ def create_session():
     db.session.add(new_session)
     db.session.commit()
     
-    # Enviar email a todos los usuarios excepto al creador
+    # Enviar email a todos los usuarios excepto al creador solo si send_notification es True
+    if send_notification:
+        _send_session_notifications(new_session)
+    else:
+        logger.info(f"Notificaciones desactivadas para la sesión: {new_session.title}")
+        print(f"Notificaciones desactivadas para la sesión: {new_session.title}")
+    
+    return jsonify(new_session.to_dict()), 201
+
+@session_bp.route('/sessions/<int:session_id>/send-notifications', methods=['POST'])
+@login_required
+def send_session_notifications(session_id):
+    """Endpoint para enviar notificaciones de una sesión específica"""
+    current_user = get_current_user()
+    session = MentorshipSession.query.get_or_404(session_id)
+    
+    # Verificar si el usuario tiene permisos para enviar notificaciones (debe ser el creador)
+    if session.mentor_id != current_user.id:
+        return jsonify({"error": "No tienes permiso para enviar notificaciones de esta sesión"}), 403
+    
     try:
-        logger.info(f"Preparando envío de notificaciones para nueva sesión: {new_session.title}")
-        print(f"Preparando envío de notificaciones para nueva sesión: {new_session.title}")
+        # Enviar notificaciones
+        _send_session_notifications(session)
+        return jsonify({"message": "Notificaciones enviadas correctamente"}), 200
+    except Exception as e:
+        logger.error(f"Error al enviar notificaciones para la sesión {session_id}: {str(e)}")
+        return jsonify({"error": f"Error al enviar notificaciones: {str(e)}"}), 500
+
+def _send_session_notifications(session):
+    """Función auxiliar para enviar notificaciones de una sesión"""
+    try:
+        logger.info(f"Preparando envío de notificaciones para sesión: {session.title}")
+        print(f"Preparando envío de notificaciones para sesión: {session.title}")
         
         # Obtener todos los usuarios
         all_users = User.query.all()
         
         # Obtener el creador
-        creator = User.query.get(data['mentor_id'])
+        creator = User.query.get(session.mentor_id)
         
         # Filtrar usuarios que no son el creador
         recipients = [user.email for user in all_users if user.id != creator.id]
@@ -76,7 +113,7 @@ def create_session():
         if recipients:
             # URL del frontend para la sesión
             frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-            session_url = f"{frontend_url}/session/{new_session.id}"
+            session_url = f"{frontend_url}/session/{session.id}"
             
             # Preparar el HTML del email
             html_content = f"""
@@ -84,11 +121,11 @@ def create_session():
             <p>Dear team,</p>
             <p>A new session has been created in MentorHub. Check the details and enrol a.s.a.p if you're interested. There are limited seats!!</p>
             <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-                <h2>{new_session.title}</h2>
-                <p><strong>Description:</strong> {new_session.description}</p>
+                <h2>{session.title}</h2>
+                <p><strong>Description:</strong> {session.description}</p>
                 <p><strong>Created by:</strong> {creator.username}</p>
-                <p><strong>Date:</strong> {new_session.scheduled_time}</p>
-                <p><strong>Max attendees:</strong> {new_session.max_attendees}</p>
+                <p><strong>Date:</strong> {session.scheduled_time}</p>
+                <p><strong>Max attendees:</strong> {session.max_attendees}</p>
             </div>
             <p><a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Bring me to MentorHub</a></p>
             """
@@ -103,11 +140,11 @@ def create_session():
             
             logger.info(f"Notificación de sesión enviada con ID: {response.get('id', 'unknown')}")
             print(f"Notificación de sesión enviada con ID: {response.get('id', 'unknown')}")
+            return True
     except Exception as e:
         logger.error(f"Error al enviar notificaciones de sesión: {str(e)}")
         print(f"ERROR AL ENVIAR NOTIFICACIONES: {str(e)}")
-    
-    return jsonify(new_session.to_dict()), 201
+        raise e
 
 @session_bp.route('/sessions/<int:session_id>', methods=['PUT'])
 @login_required

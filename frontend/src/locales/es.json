@@ -116,6 +116,8 @@
     "processing": "Procesando...",
     "creating": "Creando...",
     "create": "Crear",
+    "create_success": "Creado correctamente",
+    "save_success": "Cambios guardados correctamente",
     "not_authorized": "No estás autorizado para editar esta sesión",
     "redirecting": "Redirigiendo al modo de visualización..."
   },

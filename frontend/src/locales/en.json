@@ -116,6 +116,8 @@
     "processing": "Processing...",
     "creating": "Creating...",
     "create": "Create",
+    "create_success": "Created successfully",
+    "save_success": "Changes saved successfully",
     "not_authorized": "You are not authorized to edit this session",
     "redirecting": "Redirecting to view mode..."
   },
