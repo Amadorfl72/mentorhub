@@ -26,12 +26,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "docker:start": "docker compose up",
-    "docker:build": "docker compose build",
-    "docker:clean-start": "docker compose down -v --rmi all --remove-orphans && docker compose up --build",
-    "docker:stop": "docker compose down",
-    "docker:clean": "docker compose down -v --rmi all --remove-orphans"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

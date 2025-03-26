@@ -52,7 +52,6 @@ La aplicación proporcionará una experiencia fluida desde la inscripción hasta
 - **Base de Datos**: PostgreSQL.
 - **Gestor de Dependencias**: Pip para Python, npm/yarn para React.
 - **Control de Versiones**: Git y GitHub.
-- **Contenerización** (Opcional): Docker para gestión de despliegue.
 - **Sistema de Notificaciones**: Email con integraciones de servicios como SendGrid o SMTP (por definir).
 
 ---

@@ -36,3 +36,11 @@ jspm_packages/
 .env
 .env.*
 mentorhub_creds_google.json
+
+#db backup 
+*.sql
+*.sql.gz
+*.sql.bz2
+*.sql.tar
+*.sql.tar.gz
+*.sql.tar.bz2
