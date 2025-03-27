@@ -9,4 +9,5 @@ google-auth-oauthlib==1.1.0
 flask-dance==7.0.0
 PyJWT==2.8.0
 resend==0.6.0
+icalendar==6.1.2
 

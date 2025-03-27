@@ -44,7 +44,8 @@ class EmailService:
                   from_email: Optional[str] = None,
                   cc: Optional[Union[str, List[str]]] = None,
                   bcc: Optional[Union[str, List[str]]] = None,
-                  scheduled_at: Optional[str] = None) -> dict:
+                  scheduled_at: Optional[str] = None,
+                  attachments: Optional[List[dict]] = None) -> dict:
         """
         Send an email to one or more recipients.
         
@@ -58,6 +59,8 @@ class EmailService:
             scheduled_at: When to send the email. Can be ISO 8601 date string or natural language
                          like "in 1 hour", "tomorrow at 9am", or "Friday at 3pm ET".
                          Emails can be scheduled up to 72 hours in advance.
+            attachments: List of attachment objects with the following format:
+                         [{'filename': 'event.ics', 'content': '...', 'content_type': 'text/calendar'}]
             
         Returns:
             The response from the Resend API
@@ -97,6 +100,10 @@ class EmailService:
             # Add scheduling if provided
             if scheduled_at:
                 payload["scheduled_at"] = scheduled_at
+                
+            # Add attachments if provided
+            if attachments:
+                payload["attachments"] = attachments
             
             # Log the payload (sin HTML para legibilidad)
             payload_log = {k: v for k, v in payload.items() if k != 'html'}

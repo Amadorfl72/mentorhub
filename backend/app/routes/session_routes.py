@@ -3,7 +3,7 @@ from ..extensions import db
 from ..models.session import MentorshipSession, session_mentees
 from ..models.user import User
 from ..utils.auth import login_required, get_current_user
-from ..utils.notifications import send_email
+from ..utils.notifications import send_email, generate_ical_event, generate_google_calendar_link
 import os
 import logging
 
@@ -190,6 +190,73 @@ def enrol_mentee(session_id):
     # Añadir el mentee a la sesión
     session.mentees.append(mentee)
     db.session.commit()
+    
+    # Enviar email de confirmación
+    try:
+        # Obtener información del mentor
+        mentor = User.query.get(session.mentor_id)
+        mentor_name = mentor.username if mentor else "Unknown"
+        
+        # URL del frontend para la sesión
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+        session_url = f"{frontend_url}/session/{session.id}"
+        
+        # Generar archivo iCalendar y enlace a Google Calendar
+        ical_content = generate_ical_event(session, mentor_name)
+        google_calendar_link = generate_google_calendar_link(session, mentor_name)
+        
+        # Preparar los adjuntos
+        attachments = None
+        if ical_content:
+            attachments = [{
+                'filename': f'mentorhub-session-{session.id}.ics',
+                'content': ical_content,
+                'content_type': 'text/calendar'
+            }]
+        
+        # Preparar el HTML del email
+        html_content = f"""
+        <h1>Session Enrollment Confirmation</h1>
+        <p>Dear {mentee.username},</p>
+        <p>You have successfully enrolled in the following session:</p>
+        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+            <h2>{session.title}</h2>
+            <p><strong>Description:</strong> {session.description}</p>
+            <p><strong>Mentor:</strong> {mentor_name}</p>
+            <p><strong>Date:</strong> {session.scheduled_time}</p>
+            <p><strong>Max attendees:</strong> {session.max_attendees}</p>
+        </div>
+        <p>
+            <a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Session Details</a>
+        </p>
+        <p>Add this session to your calendar:</p>
+        <p>
+            <a href="{google_calendar_link}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #4285F4; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">Add to Google Calendar</a>
+            <a href="data:text/calendar;charset=utf8,{ical_content}" download="session-{session.id}.ics" style="display: inline-block; padding: 10px 20px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px;">Download Calendar File</a>
+        </p>
+        <p>If the calendar buttons don't work in your email client, you can:</p>
+        <ol>
+            <li>Copy this link and open it in your browser: <a href="{google_calendar_link}">{google_calendar_link}</a></li>
+            <li>Or use the attached .ics file with your preferred calendar application.</li>
+        </ol>
+        <p>We look forward to your participation!</p>
+        <p>Best regards,<br>The MentorHub Team</p>
+        """
+        
+        # Enviar el email
+        response = send_email(
+            subject=f"Enrollment Confirmation: {session.title}",
+            recipients=[mentee.email],
+            body=f"You have successfully enrolled in the session: {session.title}",
+            html_body=html_content,
+            attachments=attachments
+        )
+        
+        logger.info(f"Email de confirmación enviado con ID: {response.get('id', 'unknown')}")
+    except Exception as e:
+        # Solo registrar el error, no interrumpir el flujo
+        logger.error(f"Error al enviar email de confirmación: {str(e)}")
+        print(f"ERROR AL ENVIAR EMAIL DE CONFIRMACIÓN: {str(e)}")
 
     return jsonify({"message": f"Mentee {mentee.username} enrolled in session {session.title}"}), 200
 
