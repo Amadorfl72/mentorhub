@@ -69,9 +69,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('No user to update');
       }
       
-      const updatedUser = { ...user, ...userData };
+      // Asegurar que los valores booleanos se manejan explícitamente
+      const processedData = { ...userData };
+      
+      // Convertir explícitamente los valores booleanos y evitar undefined
+      if ('email_notifications' in processedData) {
+        // Usar doble negación para convertir cualquier valor a boolean
+        processedData.email_notifications = !!processedData.email_notifications;
+        console.log('Valor de email_notifications procesado:', processedData.email_notifications);
+      }
+      
+      console.log('Actualizando usuario con datos procesados:', processedData);
+      
+      const updatedUser = { ...user, ...processedData };
+      
+      console.log('Usuario actualizado final:', updatedUser);
+      
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // No devolver el usuario para que coincida con Promise<void>
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
