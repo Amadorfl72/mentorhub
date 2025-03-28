@@ -130,5 +130,41 @@
     },
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode"
+  },
+  "emails": {
+    "cancellation": {
+      "subject": "CANCELLED: {session_title}",
+      "title": "Session Cancellation Notice",
+      "greeting": "Dear {username},",
+      "notification": "We regret to inform you that the following session has been cancelled:",
+      "session_title": "Title",
+      "description": "Description",
+      "mentor": "Mentor",
+      "date": "Scheduled date",
+      "apology": "We apologize for any inconvenience this may cause.",
+      "alternative": "Please check our platform for alternative sessions that might interest you.",
+      "button": "Browse Sessions",
+      "regards": "Best regards,",
+      "team": "The MentorHub Team"
+    },
+    "update": {
+      "subject": "UPDATE: {session_title}",
+      "title": "Session Update",
+      "greeting": "Dear {username},",
+      "notification": "A session you are enrolled in has been updated:",
+      "change_notice": "The following changes have been made:",
+      "session_title": "Title",
+      "description": "Description",
+      "date": "Scheduled date",
+      "attendees": "Maximum attendees",
+      "old_value": "Previous value",
+      "new_value": "New value",
+      "unchanged": "Unchanged",
+      "session_details": "Updated session details",
+      "button": "View Session Details",
+      "footer": "We look forward to your participation!",
+      "regards": "Best regards,",
+      "team": "The MentorHub Team"
+    }
   }
 }

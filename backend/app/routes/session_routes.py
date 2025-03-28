@@ -150,19 +150,271 @@ def _send_session_notifications(session):
 @login_required
 def update_session(session_id):
     session = MentorshipSession.query.get_or_404(session_id)
+    
+    # Guardar valores originales para comparar cambios
+    original_title = session.title
+    original_description = session.description
+    original_scheduled_time = session.scheduled_time
+    original_max_attendees = session.max_attendees
+    
+    # Actualizar la sesión con los nuevos datos
     data = request.json
     session.title = data.get('title', session.title)
     session.description = data.get('description', session.description)
     session.scheduled_time = data.get('scheduled_time', session.scheduled_time)
     session.max_attendees = data.get('max_attendees', session.max_attendees)
     session.keywords = data.get('keywords', session.keywords)
+    
+    # Guardar los cambios
     db.session.commit()
+    
+    # Verificar si hubo cambios importantes
+    important_changes = {}
+    if original_title != session.title:
+        important_changes['title'] = {'old': original_title, 'new': session.title}
+    if original_description != session.description:
+        important_changes['description'] = {'old': original_description, 'new': session.description}
+    if original_scheduled_time != session.scheduled_time:
+        important_changes['scheduled_time'] = {'old': original_scheduled_time, 'new': session.scheduled_time}
+    if original_max_attendees != session.max_attendees:
+        important_changes['max_attendees'] = {'old': original_max_attendees, 'new': session.max_attendees}
+    
+    # Enviar notificaciones solo si hay cambios importantes
+    if important_changes and session.mentees:
+        try:
+            # Obtener información del mentor
+            mentor = User.query.get(session.mentor_id)
+            mentor_name = mentor.username if mentor else "Unknown"
+            
+            # URL del frontend
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+            session_url = f"{frontend_url}/session/{session.id}"
+            
+            # Enviar email a cada mentee inscrito
+            for user in session.mentees:
+                # Determinar el idioma del usuario (usar inglés por defecto)
+                user_lang = user.language if hasattr(user, 'language') and user.language in ['en', 'es', 'fr'] else 'en'
+                
+                # Configurar el contenido según el idioma
+                if user_lang == 'es':
+                    subject = f"ACTUALIZACIÓN: {session.title}"
+                    title = "Actualización de Sesión"
+                    greeting = f"Estimado/a {user.username},"
+                    notification = "Una sesión en la que estás inscrito/a ha sido actualizada:"
+                    change_notice = "Se han realizado los siguientes cambios:"
+                    title_label = "Título"
+                    description_label = "Descripción"
+                    date_label = "Fecha programada"
+                    attendees_label = "Máximo de asistentes"
+                    old_value = "Valor anterior"
+                    new_value = "Nuevo valor"
+                    session_details = "Detalles actualizados de la sesión"
+                    view_button = "Ver Detalles de la Sesión"
+                    footer = "¡Esperamos contar con tu participación!"
+                    regards = "Saludos cordiales,"
+                    team = "El Equipo de MentorHub"
+                elif user_lang == 'fr':
+                    subject = f"MISE À JOUR: {session.title}"
+                    title = "Mise à Jour de Session"
+                    greeting = f"Cher/Chère {user.username},"
+                    notification = "Une session à laquelle vous êtes inscrit a été mise à jour:"
+                    change_notice = "Les modifications suivantes ont été apportées:"
+                    title_label = "Titre"
+                    description_label = "Description"
+                    date_label = "Date prévue"
+                    attendees_label = "Maximum de participants"
+                    old_value = "Ancienne valeur"
+                    new_value = "Nouvelle valeur"
+                    session_details = "Détails mis à jour de la session"
+                    view_button = "Voir les Détails de la Session"
+                    footer = "Nous espérons vous voir à cette session!"
+                    regards = "Cordialement,"
+                    team = "L'équipe MentorHub"
+                else:  # 'en' por defecto
+                    subject = f"UPDATE: {session.title}"
+                    title = "Session Update"
+                    greeting = f"Dear {user.username},"
+                    notification = "A session you are enrolled in has been updated:"
+                    change_notice = "The following changes have been made:"
+                    title_label = "Title"
+                    description_label = "Description"
+                    date_label = "Scheduled date"
+                    attendees_label = "Maximum attendees"
+                    old_value = "Previous value"
+                    new_value = "New value"
+                    session_details = "Updated session details"
+                    view_button = "View Session Details"
+                    footer = "We look forward to your participation!"
+                    regards = "Best regards,"
+                    team = "The MentorHub Team"
+                
+                # Construir la tabla de cambios HTML
+                changes_html = f"<h2>{change_notice}</h2><table border='1' cellpadding='10' style='border-collapse: collapse; width: 100%;'>"
+                
+                # Añadir encabezados de la tabla
+                changes_html += f"<tr style='background-color: #f2f2f2;'><th>Campo</th><th>{old_value}</th><th>{new_value}</th></tr>"
+                
+                # Añadir filas para cada cambio
+                if 'title' in important_changes:
+                    changes_html += f"<tr><td>{title_label}</td><td>{important_changes['title']['old']}</td><td>{important_changes['title']['new']}</td></tr>"
+                if 'description' in important_changes:
+                    changes_html += f"<tr><td>{description_label}</td><td>{important_changes['description']['old']}</td><td>{important_changes['description']['new']}</td></tr>"
+                if 'scheduled_time' in important_changes:
+                    changes_html += f"<tr><td>{date_label}</td><td>{important_changes['scheduled_time']['old']}</td><td>{important_changes['scheduled_time']['new']}</td></tr>"
+                if 'max_attendees' in important_changes:
+                    changes_html += f"<tr><td>{attendees_label}</td><td>{important_changes['max_attendees']['old']}</td><td>{important_changes['max_attendees']['new']}</td></tr>"
+                
+                changes_html += "</table>"
+                
+                # Preparar el HTML del email
+                html_content = f"""
+                <h1>{title}</h1>
+                <p>{greeting}</p>
+                <p>{notification}</p>
+                <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <h2 style="color: #1976d2;">{session.title}</h2>
+                    {changes_html}
+                    <h3 style="margin-top: 20px;">{session_details}</h3>
+                    <p><strong>{title_label}:</strong> {session.title}</p>
+                    <p><strong>{description_label}:</strong> {session.description}</p>
+                    <p><strong>{date_label}:</strong> {session.scheduled_time}</p>
+                    <p><strong>Mentor:</strong> {mentor_name}</p>
+                    <p><strong>{attendees_label}:</strong> {session.max_attendees}</p>
+                </div>
+                <p>
+                    <a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #1976d2; color: white; text-decoration: none; border-radius: 5px;">
+                        {view_button}
+                    </a>
+                </p>
+                <p>{footer}</p>
+                <p>{regards}<br>{team}</p>
+                """
+                
+                # Enviar el email
+                response = send_email(
+                    subject=subject,
+                    recipients=[user.email],
+                    body=f"{notification} {session.title}",
+                    html_body=html_content
+                )
+                
+                logger.info(f"Email de actualización enviado a {user.email} con ID: {response.get('id', 'unknown')}")
+        except Exception as e:
+            # Solo registrar el error, no interrumpir el flujo
+            logger.error(f"Error al enviar emails de actualización: {str(e)}")
+            print(f"ERROR AL ENVIAR EMAILS DE ACTUALIZACIÓN: {str(e)}")
+    
     return jsonify(session.to_dict())
 
 @session_bp.route('/sessions/<int:session_id>', methods=['DELETE'])
 @login_required
 def delete_session(session_id):
     session = MentorshipSession.query.get_or_404(session_id)
+    
+    # Guardar datos relevantes antes de eliminar la sesión
+    session_title = session.title
+    session_description = session.description
+    session_scheduled_time = session.scheduled_time
+    
+    # Obtener información del mentor
+    mentor = User.query.get(session.mentor_id)
+    mentor_name = mentor.username if mentor else "Unknown"
+    
+    # Obtener todos los usuarios inscritos en la sesión
+    enrolled_users = session.mentees
+    
+    # Enviar notificaciones de cancelación a los usuarios inscritos
+    if enrolled_users:
+        try:
+            # URL del frontend
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+            
+            # Enviar email a cada usuario inscrito
+            for user in enrolled_users:
+                # Determinar el idioma del usuario (usar inglés por defecto)
+                user_lang = user.language if hasattr(user, 'language') and user.language in ['en', 'es', 'fr'] else 'en'
+                
+                # Preparar el HTML del email según el idioma del usuario
+                if user_lang == 'es':
+                    subject = f"CANCELADO: {session_title}"
+                    title = "Aviso de Cancelación de Sesión"
+                    greeting = f"Estimado/a {user.username},"
+                    notification = "Lamentamos informarte que la siguiente sesión ha sido cancelada:"
+                    session_title_label = "Título"
+                    description_label = "Descripción"
+                    mentor_label = "Mentor"
+                    date_label = "Fecha programada"
+                    apology = "Nos disculpamos por cualquier inconveniente que esto pueda causar."
+                    alternative = "Por favor, consulta nuestra plataforma para sesiones alternativas que puedan interesarte."
+                    button = "Explorar Sesiones"
+                    regards = "Saludos cordiales,"
+                    team = "El Equipo de MentorHub"
+                elif user_lang == 'fr':
+                    subject = f"ANNULÉ: {session_title}"
+                    title = "Avis d'Annulation de Session"
+                    greeting = f"Cher/Chère {user.username},"
+                    notification = "Nous regrettons de vous informer que la session suivante a été annulée:"
+                    session_title_label = "Titre"
+                    description_label = "Description"
+                    mentor_label = "Mentor"
+                    date_label = "Date prévue"
+                    apology = "Nous nous excusons pour tout inconvénient que cela pourrait causer."
+                    alternative = "Veuillez consulter notre plateforme pour des sessions alternatives qui pourraient vous intéresser."
+                    button = "Parcourir les Sessions"
+                    regards = "Cordialement,"
+                    team = "L'équipe MentorHub"
+                else: # 'en' by default
+                    subject = f"CANCELLED: {session_title}"
+                    title = "Session Cancellation Notice"
+                    greeting = f"Dear {user.username},"
+                    notification = "We regret to inform you that the following session has been cancelled:"
+                    session_title_label = "Title"
+                    description_label = "Description"
+                    mentor_label = "Mentor"
+                    date_label = "Scheduled date"
+                    apology = "We apologize for any inconvenience this may cause."
+                    alternative = "Please check our platform for alternative sessions that might interest you."
+                    button = "Browse Sessions"
+                    regards = "Best regards,"
+                    team = "The MentorHub Team"
+                
+                # Preparar el HTML del email
+                html_content = f"""
+                <h1>{title}</h1>
+                <p>{greeting}</p>
+                <p>{notification}</p>
+                <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <h2 style="color: #e53935;">{session_title}</h2>
+                    <p><strong>{session_title_label}:</strong> {session_title}</p>
+                    <p><strong>{description_label}:</strong> {session_description}</p>
+                    <p><strong>{mentor_label}:</strong> {mentor_name}</p>
+                    <p><strong>{date_label}:</strong> {session_scheduled_time}</p>
+                </div>
+                <p>{apology}</p>
+                <p>{alternative}</p>
+                <p>
+                    <a href="{frontend_url}/sessions" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+                        {button}
+                    </a>
+                </p>
+                <p>{regards}<br>{team}</p>
+                """
+                
+                # Enviar el email
+                response = send_email(
+                    subject=subject,
+                    recipients=[user.email],
+                    body=f"{notification} {session_title}",
+                    html_body=html_content
+                )
+                
+                logger.info(f"Email de cancelación enviado a {user.email} con ID: {response.get('id', 'unknown')}")
+        except Exception as e:
+            # Solo registrar el error, no interrumpir el flujo
+            logger.error(f"Error al enviar emails de cancelación: {str(e)}")
+            print(f"ERROR AL ENVIAR EMAILS DE CANCELACIÓN: {str(e)}")
+    
+    # Eliminar la sesión
     db.session.delete(session)
     db.session.commit()
     return '', 204
