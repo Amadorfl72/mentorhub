@@ -201,19 +201,6 @@ def enrol_mentee(session_id):
         frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
         session_url = f"{frontend_url}/session/{session.id}"
         
-        # Generar archivo iCalendar y enlace a Google Calendar
-        ical_content = generate_ical_event(session, mentor_name)
-        google_calendar_link = generate_google_calendar_link(session, mentor_name)
-        
-        # Preparar los adjuntos
-        attachments = None
-        if ical_content:
-            attachments = [{
-                'filename': f'mentorhub-session-{session.id}.ics',
-                'content': ical_content,
-                'content_type': 'text/calendar'
-            }]
-        
         # Preparar el HTML del email
         html_content = f"""
         <h1>Session Enrollment Confirmation</h1>
@@ -229,16 +216,6 @@ def enrol_mentee(session_id):
         <p>
             <a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Session Details</a>
         </p>
-        <p>Add this session to your calendar:</p>
-        <p>
-            <a href="{google_calendar_link}" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #4285F4; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">Add to Google Calendar</a>
-            <a href="data:text/calendar;charset=utf8,{ical_content}" download="session-{session.id}.ics" style="display: inline-block; padding: 10px 20px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px;">Download Calendar File</a>
-        </p>
-        <p>If the calendar buttons don't work in your email client, you can:</p>
-        <ol>
-            <li>Copy this link and open it in your browser: <a href="{google_calendar_link}">{google_calendar_link}</a></li>
-            <li>Or use the attached .ics file with your preferred calendar application.</li>
-        </ol>
         <p>We look forward to your participation!</p>
         <p>Best regards,<br>The MentorHub Team</p>
         """
@@ -248,8 +225,7 @@ def enrol_mentee(session_id):
             subject=f"Enrollment Confirmation: {session.title}",
             recipients=[mentee.email],
             body=f"You have successfully enrolled in the session: {session.title}",
-            html_body=html_content,
-            attachments=attachments
+            html_body=html_content
         )
         
         logger.info(f"Email de confirmación enviado con ID: {response.get('id', 'unknown')}")
