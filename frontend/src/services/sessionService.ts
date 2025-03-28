@@ -12,6 +12,7 @@ export interface Session {
   mentees?: User[];
   created_at?: string;
   updated_at?: string;
+  is_cloned?: boolean;
 }
 
 const API_URL = 'http://localhost:5001';
@@ -235,7 +236,8 @@ export const duplicateSession = async (sessionId: number): Promise<Session> => {
       max_attendees: originalSession.max_attendees,
       keywords: originalSession.keywords,
       mentees: [], // Sin mentees en la nueva sesión
-      send_notification: false // No enviar notificaciones al duplicar
+      send_notification: false, // No enviar notificaciones al duplicar
+      is_cloned: true
     };
     
     // 3. Crear la nueva sesión

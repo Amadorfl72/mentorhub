@@ -85,7 +85,9 @@
     "interests_placeholder": "Quels sujets vous intéressent ?",
     "want_to_be_mentor": "Je veux être mentor",
     "save": "Enregistrer",
-    "complete": "Terminer l'Inscription"
+    "complete": "Terminer l'Inscription",
+    "email_notifications": "Recevoir des Notifications par Email",
+    "email_notifications_description": "Recevoir des notifications sur les nouvelles sessions, mises à jour et annulations"
   },
   "profile": {
     "view_edit": "Voir/Modifier Profil",

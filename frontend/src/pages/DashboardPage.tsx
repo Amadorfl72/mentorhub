@@ -830,8 +830,8 @@ const DashboardPage = () => {
       // Mostrar notificación de éxito
       showNotification(t("sessions.duplicate_success"), "success");
       
-      // Navegar a la página de edición de la sesión duplicada con el parámetro edit=true y fromDuplicate=true
-      navigate(`/session/${duplicatedSession.id}?edit=true&fromDuplicate=true`);
+      // Navegar a la página de edición de la sesión duplicada con el parámetro cloned=true
+      navigate(`/session/${duplicatedSession.id}?cloned=true`);
     } catch (error) {
       console.error("Error al duplicar la sesión:", error);
       showNotification(t("sessions.duplicate_error"), "error");

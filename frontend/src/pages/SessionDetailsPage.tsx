@@ -42,7 +42,7 @@ interface FormData {
   scheduled_time: string;
   max_attendees: number;
   keywords: string;
-  mentees?: { id: number }[];
+  is_cloned?: boolean;
 }
 
 const SessionDetailsPage: React.FC = () => {
@@ -70,12 +70,13 @@ const SessionDetailsPage: React.FC = () => {
     return mentorInfo.id === user.id || user?.role === 'admin';
   }, [user, mentorInfo]);
   
-  // Verificar si estamos en modo edición (basado en un parámetro de URL)
+  // Obtener parámetros de la URL
   const queryParams = new URLSearchParams(location.search);
   const urlHasEditParam = queryParams.get('edit') === 'true';
+  const isClonedSession = queryParams.get('cloned') === 'true';
   
-  // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición
-  const isEditMode = urlHasEditParam && isOwnerOrAdmin;
+  // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición (o es una sesión clonada)
+  const isEditMode = (urlHasEditParam || isClonedSession) && isOwnerOrAdmin;
   
   // Los campos solo son editables si es una sesión nueva o si estamos en modo edición
   const isEditable = !isExistingSession || isEditMode;
@@ -276,67 +277,70 @@ const SessionDetailsPage: React.FC = () => {
     
     setLoading(true);
     try {
-      // Determinar si esta es una sesión duplicada
-      // Revisamos por " - Copy" en el título y también usamos un parámetro de URL como respaldo
-      const queryParams = new URLSearchParams(location.search);
-      const isFromDuplicate = queryParams.get('fromDuplicate') === 'true';
-      const titleHasCopy = sessionData.title.includes(' - Copy');
-      
-      // La sesión es duplicada si el título contiene " - Copy" o si viene del parámetro fromDuplicate
-      const isDuplicated = titleHasCopy || isFromDuplicate;
-      
-      interface FormData {
-        title: string;
-        description: string;
-        mentor_id: number;
-        scheduled_time: string;
-        max_attendees: number;
-        keywords: string;
-      }
-      
+      // Preparar datos para envío
       const formData: FormData = {
         title: sessionData.title,
         description: sessionData.description,
-        mentor_id: user?.id || 0,
         scheduled_time: sessionData.scheduled_time,
         max_attendees: sessionData.max_attendees,
-        keywords: sessionData.keywords
+        keywords: sessionData.keywords,
+        mentor_id: user?.id || 0
       };
       
-      if (!isExistingSession) {
-        // Crear nueva sesión
-        const createdSession = await createSession(formData);
-        showSuccess(t('common.create_success'));
-        navigate(`/session/${createdSession.id}`);
-      } else {
-        // Actualizar sesión existente
-        await updateSession(parseInt(id!), formData);
-        
-        // Si es una sesión duplicada, enviar notificaciones después de guardar
-        if (isDuplicated) {
-          try {
-            await sendSessionNotifications(parseInt(id!));
-            console.log('Notificaciones enviadas para la sesión duplicada');
-            
-            // Si tenemos el parámetro fromDuplicate, lo quitamos para que no se envíen notificaciones en ediciones futuras
-            if (isFromDuplicate) {
-              navigate(`/session/${id}`, { replace: true });
-            }
-          } catch (error) {
-            console.error('Error al enviar notificaciones:', error);
-          }
-        }
-        
-        showSuccess(t('common.save_success'));
-        
-        // Solo redirigimos si no hemos redirigido ya en el bloque anterior
-        if (!isDuplicated || !isFromDuplicate) {
-          navigate(`/session/${id}`);
-        }
+      // Solo añadir la bandera is_cloned si estamos en el caso específico de clonación
+      if (isClonedSession) {
+        (formData as any).is_cloned = true;
       }
+      
+      let sessionId: number;
+      
+      if (isExistingSession) {
+        // Actualizar sesión existente
+        const updatedSession = await updateSession(parseInt(id as string), formData as Partial<Session>);
+        sessionId = updatedSession.id as number;
+        
+        // Manejar redirección según el caso:
+        
+        // CASO 1: Si es una sesión clonada (cloned=true)
+        if (isClonedSession) {
+          // Guardar el valor antes de navegar para no perderlo
+          const clonedSessionId = sessionId; 
+          
+          // Primero navegar a la URL normal para quitar el parámetro cloned
+          navigate(`/session/${sessionId}`, { replace: true });
+          
+          // Después de guardar, enviar notificaciones de nueva sesión
+          try {
+            console.log('Enviando notificaciones para sesión clonada:', clonedSessionId);
+            await sendSessionNotifications(clonedSessionId);
+            console.log('Notificaciones de nueva sesión enviadas para la sesión clonada:', clonedSessionId);
+          } catch (error) {
+            console.error('Error al enviar notificaciones de nueva sesión:', error);
+          }
+        } 
+        // CASO 2: Si es una edición normal (edit=true)
+        else if (urlHasEditParam) {
+          console.log('Sesión normal actualizada. Las notificaciones las gestiona el backend.');
+          // Solo quitar el parámetro de edición (las notificaciones de actualización las maneja el backend)
+          navigate(`/session/${sessionId}`, { replace: true });
+        }
+        // CASO 3: Otros casos (aunque no debería ocurrir)
+        else {
+          navigate(`/session/${sessionId}`, { replace: true });
+        }
+      } 
+      // CASO 4: Creación de nueva sesión
+      else {
+        // Crear nueva sesión
+        const newSession = await createSession(formData as Omit<Session, 'id'>);
+        sessionId = newSession.id as number;
+        navigate(`/session/${sessionId}`);
+      }
+      
+      // Mostrar notificación de éxito
+      showSuccess(isExistingSession ? t('common.save_success') : t('common.create_success'));
     } catch (error) {
-      console.error('Error al guardar la sesión:', error);
-      // Aquí podrías mostrar un mensaje de error
+      console.error("Error al guardar la sesión:", error);
     } finally {
       setLoading(false);
     }
@@ -500,6 +504,7 @@ const SessionDetailsPage: React.FC = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">
             {!isExistingSession ? t('sessions.create_session') : 
+             isClonedSession ? t('sessions.duplicate') : 
              isEditMode ? t('sessions.edit_session') : 
              t('sessions.session_details')}
           </h1>

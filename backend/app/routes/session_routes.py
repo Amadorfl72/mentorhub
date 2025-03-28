@@ -104,8 +104,8 @@ def _send_session_notifications(session):
         # Obtener el creador
         creator = User.query.get(session.mentor_id)
         
-        # Filtrar usuarios que no son el creador
-        recipients = [user.email for user in all_users if user.id != creator.id]
+        # Filtrar usuarios que no son el creador y que tienen activadas las notificaciones
+        recipients = [user.email for user in all_users if user.id != creator.id and user.email_notifications]
         
         logger.info(f"Se enviarán notificaciones a {len(recipients)} usuarios")
         print(f"Se enviarán notificaciones a {len(recipients)} usuarios")
@@ -157,8 +157,17 @@ def update_session(session_id):
     original_scheduled_time = session.scheduled_time
     original_max_attendees = session.max_attendees
     
-    # Actualizar la sesión con los nuevos datos
+    # Obtener datos de la petición
     data = request.json
+    
+    # Verificar si es una operación de clonado utilizando el parámetro explícito
+    is_cloned_param = data.get('is_cloned', False)
+    
+    # Eliminar la bandera 'is_cloned' de los datos antes de actualizar la sesión
+    if 'is_cloned' in data:
+        del data['is_cloned']
+    
+    # Actualizar la sesión con los nuevos datos
     session.title = data.get('title', session.title)
     session.description = data.get('description', session.description)
     session.scheduled_time = data.get('scheduled_time', session.scheduled_time)
@@ -179,8 +188,11 @@ def update_session(session_id):
     if original_max_attendees != session.max_attendees:
         important_changes['max_attendees'] = {'old': original_max_attendees, 'new': session.max_attendees}
     
-    # Enviar notificaciones solo si hay cambios importantes
-    if important_changes and session.mentees:
+    # Determinar si debemos enviar notificaciones:
+    # 1. Si hay cambios importantes
+    # 2. Si la sesión tiene mentees
+    # 3. Si NO es una operación de clonado (las notificaciones para sesiones clonadas las gestiona el frontend)
+    if important_changes and session.mentees and not is_cloned_param:
         try:
             # Obtener información del mentor
             mentor = User.query.get(session.mentor_id)
@@ -190,8 +202,14 @@ def update_session(session_id):
             frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
             session_url = f"{frontend_url}/session/{session.id}"
             
-            # Enviar email a cada mentee inscrito
-            for user in session.mentees:
+            # Filtrar usuarios que tengan activadas las notificaciones
+            mentees_with_notifications = [user for user in session.mentees if user.email_notifications]
+            
+            logger.info(f"Enviando notificaciones de actualización a {len(mentees_with_notifications)} mentees para la sesión '{session.title}'")
+            print(f"Enviando notificaciones de actualización a {len(mentees_with_notifications)} mentees")
+            
+            # Enviar email a cada mentee inscrito con notificaciones activadas
+            for user in mentees_with_notifications:
                 # Determinar el idioma del usuario (usar inglés por defecto)
                 user_lang = user.language if hasattr(user, 'language') and user.language in ['en', 'es', 'fr'] else 'en'
                 
@@ -320,17 +338,17 @@ def delete_session(session_id):
     mentor = User.query.get(session.mentor_id)
     mentor_name = mentor.username if mentor else "Unknown"
     
-    # Obtener todos los usuarios inscritos en la sesión
-    enrolled_users = session.mentees
+    # Obtener usuarios inscritos que tienen activadas las notificaciones
+    enrolled_users_with_notifications = [user for user in session.mentees if user.email_notifications]
     
-    # Enviar notificaciones de cancelación a los usuarios inscritos
-    if enrolled_users:
+    # Enviar notificaciones de cancelación a los usuarios inscritos con notificaciones activadas
+    if enrolled_users_with_notifications:
         try:
             # URL del frontend
             frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
             
-            # Enviar email a cada usuario inscrito
-            for user in enrolled_users:
+            # Enviar email a cada usuario inscrito con notificaciones activadas
+            for user in enrolled_users_with_notifications:
                 # Determinar el idioma del usuario (usar inglés por defecto)
                 user_lang = user.language if hasattr(user, 'language') and user.language in ['en', 'es', 'fr'] else 'en'
                 
@@ -443,48 +461,49 @@ def enrol_mentee(session_id):
     session.mentees.append(mentee)
     db.session.commit()
     
-    # Enviar email de confirmación
-    try:
-        # Obtener información del mentor
-        mentor = User.query.get(session.mentor_id)
-        mentor_name = mentor.username if mentor else "Unknown"
-        
-        # URL del frontend para la sesión
-        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-        session_url = f"{frontend_url}/session/{session.id}"
-        
-        # Preparar el HTML del email
-        html_content = f"""
-        <h1>Session Enrollment Confirmation</h1>
-        <p>Dear {mentee.username},</p>
-        <p>You have successfully enrolled in the following session:</p>
-        <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-            <h2>{session.title}</h2>
-            <p><strong>Description:</strong> {session.description}</p>
-            <p><strong>Mentor:</strong> {mentor_name}</p>
-            <p><strong>Date:</strong> {session.scheduled_time}</p>
-            <p><strong>Max attendees:</strong> {session.max_attendees}</p>
-        </div>
-        <p>
-            <a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Session Details</a>
-        </p>
-        <p>We look forward to your participation!</p>
-        <p>Best regards,<br>The MentorHub Team</p>
-        """
-        
-        # Enviar el email
-        response = send_email(
-            subject=f"Enrollment Confirmation: {session.title}",
-            recipients=[mentee.email],
-            body=f"You have successfully enrolled in the session: {session.title}",
-            html_body=html_content
-        )
-        
-        logger.info(f"Email de confirmación enviado con ID: {response.get('id', 'unknown')}")
-    except Exception as e:
-        # Solo registrar el error, no interrumpir el flujo
-        logger.error(f"Error al enviar email de confirmación: {str(e)}")
-        print(f"ERROR AL ENVIAR EMAIL DE CONFIRMACIÓN: {str(e)}")
+    # Enviar email de confirmación solo si el usuario tiene activadas las notificaciones
+    if mentee.email_notifications:
+        try:
+            # Obtener información del mentor
+            mentor = User.query.get(session.mentor_id)
+            mentor_name = mentor.username if mentor else "Unknown"
+            
+            # URL del frontend para la sesión
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+            session_url = f"{frontend_url}/session/{session.id}"
+            
+            # Preparar el HTML del email
+            html_content = f"""
+            <h1>Session Enrollment Confirmation</h1>
+            <p>Dear {mentee.username},</p>
+            <p>You have successfully enrolled in the following session:</p>
+            <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                <h2>{session.title}</h2>
+                <p><strong>Description:</strong> {session.description}</p>
+                <p><strong>Mentor:</strong> {mentor_name}</p>
+                <p><strong>Date:</strong> {session.scheduled_time}</p>
+                <p><strong>Max attendees:</strong> {session.max_attendees}</p>
+            </div>
+            <p>
+                <a href="{session_url}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">View Session Details</a>
+            </p>
+            <p>We look forward to your participation!</p>
+            <p>Best regards,<br>The MentorHub Team</p>
+            """
+            
+            # Enviar el email
+            response = send_email(
+                subject=f"Enrollment Confirmation: {session.title}",
+                recipients=[mentee.email],
+                body=f"You have successfully enrolled in the session: {session.title}",
+                html_body=html_content
+            )
+            
+            logger.info(f"Email de confirmación enviado con ID: {response.get('id', 'unknown')}")
+        except Exception as e:
+            # Solo registrar el error, no interrumpir el flujo
+            logger.error(f"Error al enviar email de confirmación: {str(e)}")
+            print(f"ERROR AL ENVIAR EMAIL DE CONFIRMACIÓN: {str(e)}")
 
     return jsonify({"message": f"Mentee {mentee.username} enrolled in session {session.title}"}), 200
 

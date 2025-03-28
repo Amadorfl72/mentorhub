@@ -10,6 +10,8 @@ export interface User {
   skills?: string;
   interests?: string;
   admin?: boolean;
+  language?: string;
+  email_notifications?: boolean;
 }
 
 interface AuthContextType {

@@ -5,6 +5,7 @@ import { Button, TextInput, Alert, Avatar, Label, ToggleSwitch } from 'flowbite-
 import { useTranslation } from 'react-i18next';
 import { HiX, HiArrowLeft, HiCheck } from 'react-icons/hi';
 import ThemeSwitch from '../components/ThemeSwitch';
+import { apiPut } from '../services/api';
 
 const RegisterPage = () => {
   const { user, updateUser } = useAuth();
@@ -31,6 +32,7 @@ const RegisterPage = () => {
   });
 
   const [isMentor, setIsMentor] = useState(user?.role === 'mentor');
+  const [emailNotifications, setEmailNotifications] = useState(user?.email_notifications !== false);
 
   // Remove or comment out these debug logs
   // console.log('Form data:', formData);
@@ -48,6 +50,7 @@ const RegisterPage = () => {
         interests: user.interests || ''
       });
       setIsMentor(user.role === 'mentor');
+      setEmailNotifications(user.email_notifications !== false);
       
       // If you need logging, put it here so it only runs when user changes
       // console.log('User updated, new form data:', {
@@ -64,29 +67,17 @@ const RegisterPage = () => {
     event.preventDefault();
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          photoUrl: formData.photoUrl,
-          skills: formData.skills,
-          interests: formData.interests,
-          role: isMentor ? 'mentor' : 'mentee'
-        })
+      // Use apiPut service instead of direct fetch
+      const data = await apiPut('/api/users/profile', {
+        name: formData.name,
+        email: formData.email,
+        photoUrl: formData.photoUrl,
+        skills: formData.skills,
+        interests: formData.interests,
+        role: isMentor ? 'mentor' : 'mentee',
+        email_notifications: emailNotifications
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      
       await updateUser(data);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000); // Ocultar después de 3 segundos
@@ -252,28 +243,31 @@ const RegisterPage = () => {
               </div>
             </div>
 
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium text-gray-300">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-300">
                   {t('register.want_to_be_mentor')}
-                </Label>
-                <div className="inline-flex rounded-lg border border-gray-600">
-                  <button
-                    type="button"
-                    className={`px-4 py-2 rounded-l-lg ${isMentor ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                    onClick={() => setIsMentor(true)}
-                  >
-                    {t('common.yes')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-4 py-2 rounded-r-lg ${!isMentor ? 'bg-blue-600 text-white' : 'text-gray-300'}`}
-                    onClick={() => setIsMentor(false)}
-                  >
-                    {t('common.no')}
-                  </button>
-                </div>
+                </span>
               </div>
+              <ToggleSwitch
+                checked={isMentor}
+                onChange={setIsMentor}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-300">
+                  {t('register.email_notifications')}
+                </span>
+                <span className="text-xs text-gray-400 mt-1">
+                  {t('register.email_notifications_description')}
+                </span>
+              </div>
+              <ToggleSwitch
+                checked={emailNotifications}
+                onChange={setEmailNotifications}
+              />
             </div>
 
             {/* Botones de acción */}
