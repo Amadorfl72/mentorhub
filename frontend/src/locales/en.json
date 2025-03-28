@@ -91,11 +91,27 @@
     "interests_placeholder": "What topics interest you?",
     "want_to_be_mentor": "I want to be a mentor",
     "save": "Save Changes",
-    "complete": "Complete Registration"
+    "complete": "Complete Registration",
+    "email_notifications": "Receive Email Notifications",
+    "email_notifications_description": "Receive notifications about new sessions, updates, and cancellations",
+    "switch_to_mentor": "Switch to mentor role",
+    "switch_to_mentee": "Switch to mentee role",
+    "mentor_role": "Mentor Role",
+    "mentee_role": "Mentee Role",
+    "tooltip_mentor": "You can create and manage mentoring sessions",
+    "tooltip_mentee": "You can join sessions created by mentors"
   },
   "profile": {
     "view_edit": "View/Edit Profile",
     "changes_saved": "Changes saved successfully"
+  },
+  "notifications": {
+    "enable": "Enable email notifications",
+    "disable": "Disable email notifications",
+    "enabled": "Email notifications enabled",
+    "disabled": "Email notifications disabled",
+    "tooltip_enabled": "You will receive emails about new sessions, updates, and cancellations",
+    "tooltip_disabled": "You will not receive any notification emails"
   },
   "common": {
     "logout": "Logout",
@@ -115,6 +131,9 @@
     "unenrol": "Unenrol",
     "processing": "Processing...",
     "creating": "Creating...",
+    "create": "Create",
+    "create_success": "Created successfully",
+    "save_success": "Changes saved successfully",
     "not_authorized": "You are not authorized to edit this session",
     "redirecting": "Redirecting to view mode..."
   },
@@ -127,5 +146,41 @@
     },
     "switchToLight": "Switch to light mode",
     "switchToDark": "Switch to dark mode"
+  },
+  "emails": {
+    "cancellation": {
+      "subject": "CANCELLED: {session_title}",
+      "title": "Session Cancellation Notice",
+      "greeting": "Dear {username},",
+      "notification": "We regret to inform you that the following session has been cancelled:",
+      "session_title": "Title",
+      "description": "Description",
+      "mentor": "Mentor",
+      "date": "Scheduled date",
+      "apology": "We apologize for any inconvenience this may cause.",
+      "alternative": "Please check our platform for alternative sessions that might interest you.",
+      "button": "Browse Sessions",
+      "regards": "Best regards,",
+      "team": "The MentorHub Team"
+    },
+    "update": {
+      "subject": "UPDATE: {session_title}",
+      "title": "Session Update",
+      "greeting": "Dear {username},",
+      "notification": "A session you are enrolled in has been updated:",
+      "change_notice": "The following changes have been made:",
+      "session_title": "Title",
+      "description": "Description",
+      "date": "Scheduled date",
+      "attendees": "Maximum attendees",
+      "old_value": "Previous value",
+      "new_value": "New value",
+      "unchanged": "Unchanged",
+      "session_details": "Updated session details",
+      "button": "View Session Details",
+      "footer": "We look forward to your participation!",
+      "regards": "Best regards,",
+      "team": "The MentorHub Team"
+    }
   }
 }

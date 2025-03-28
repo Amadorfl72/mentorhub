@@ -15,6 +15,8 @@ class User(db.Model):
     skills = db.Column(db.Text, nullable=True)  # Comma-separated keywords
     interests = db.Column(db.Text, nullable=True)  # Comma-separated keywords
     admin = db.Column(db.Boolean, default=False, nullable=False)  # Campo para privilegios de administrador
+    email_notifications = db.Column(db.Boolean, default=True, nullable=False)  # Preferencia para recibir emails (por defecto activado)
+    language = db.Column(db.String(5), default='en', nullable=False)  # Preferencia de idioma (en, es, fr)
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -29,5 +31,7 @@ class User(db.Model):
             'role': self.role,
             'skills': self.skills,
             'interests': self.interests,
-            'admin': self.admin
+            'admin': self.admin,
+            'email_notifications': self.email_notifications,
+            'language': self.language
         }

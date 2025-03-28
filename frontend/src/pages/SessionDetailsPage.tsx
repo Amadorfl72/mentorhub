@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Label, TextInput, Textarea, Select, Modal, Avatar } from 'flowbite-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session } from '../services/sessionService';
+import { createSession, getSession, updateSession, deleteSession, enrollMentee, unenrollMentee, Session, sendSessionNotifications } from '../services/sessionService';
 import { HiX, HiArrowLeft, HiExclamation, HiCalendar, HiClock, HiUsers, HiCheckCircle } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { fetchData } from '../services/apiService';
@@ -42,7 +42,7 @@ interface FormData {
   scheduled_time: string;
   max_attendees: number;
   keywords: string;
-  mentees?: { id: number }[];
+  is_cloned?: boolean;
 }
 
 const SessionDetailsPage: React.FC = () => {
@@ -70,12 +70,13 @@ const SessionDetailsPage: React.FC = () => {
     return mentorInfo.id === user.id || user?.role === 'admin';
   }, [user, mentorInfo]);
   
-  // Verificar si estamos en modo edición (basado en un parámetro de URL)
+  // Obtener parámetros de la URL
   const queryParams = new URLSearchParams(location.search);
   const urlHasEditParam = queryParams.get('edit') === 'true';
+  const isClonedSession = queryParams.get('cloned') === 'true';
   
-  // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición
-  const isEditMode = urlHasEditParam && isOwnerOrAdmin;
+  // Solo permitir modo edición si es propietario o admin Y tiene el parámetro de edición (o es una sesión clonada)
+  const isEditMode = (urlHasEditParam || isClonedSession) && isOwnerOrAdmin;
   
   // Los campos solo son editables si es una sesión nueva o si estamos en modo edición
   const isEditable = !isExistingSession || isEditMode;
@@ -271,45 +272,75 @@ const SessionDetailsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      alert('Debes iniciar sesión para crear o editar una sesión');
-      return;
-    }
+    // Solo permitir el envío si los campos son editables
+    if (!isEditable) return;
     
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Formatear los datos del formulario
-      interface FormData {
-        title: string;
-        description: string;
-        mentor_id: number;
-        scheduled_time: string;
-        max_attendees: number;
-        keywords: string;
-      }
-      
-      const formattedData: FormData = {
+      // Preparar datos para envío
+      const formData: FormData = {
         title: sessionData.title,
         description: sessionData.description,
-        mentor_id: user?.id || 0, // Usar 0 o algún valor por defecto si id es undefined
         scheduled_time: sessionData.scheduled_time,
-        max_attendees: parseInt(sessionData.max_attendees.toString()),
+        max_attendees: sessionData.max_attendees,
         keywords: sessionData.keywords,
+        mentor_id: user?.id || 0
       };
       
-      if (isEditMode && id) {
-        // Usar el tipo correcto para updateSession
-        await updateSession(parseInt(id), formattedData as Partial<Session>);
-      } else {
-        await createSession(formattedData as any);
+      // Solo añadir la bandera is_cloned si estamos en el caso específico de clonación
+      if (isClonedSession) {
+        (formData as any).is_cloned = true;
       }
       
-      // Redirigir al dashboard después de crear/editar
-      navigate('/dashboard');
+      let sessionId: number;
+      
+      if (isExistingSession) {
+        // Actualizar sesión existente
+        const updatedSession = await updateSession(parseInt(id as string), formData as Partial<Session>);
+        sessionId = updatedSession.id as number;
+        
+        // Manejar redirección según el caso:
+        
+        // CASO 1: Si es una sesión clonada (cloned=true)
+        if (isClonedSession) {
+          // Guardar el valor antes de navegar para no perderlo
+          const clonedSessionId = sessionId; 
+          
+          // Primero navegar a la URL normal para quitar el parámetro cloned
+          navigate(`/session/${sessionId}`, { replace: true });
+          
+          // Después de guardar, enviar notificaciones de nueva sesión
+          try {
+            console.log('Enviando notificaciones para sesión clonada:', clonedSessionId);
+            await sendSessionNotifications(clonedSessionId);
+            console.log('Notificaciones de nueva sesión enviadas para la sesión clonada:', clonedSessionId);
+          } catch (error) {
+            console.error('Error al enviar notificaciones de nueva sesión:', error);
+          }
+        } 
+        // CASO 2: Si es una edición normal (edit=true)
+        else if (urlHasEditParam) {
+          console.log('Sesión normal actualizada. Las notificaciones las gestiona el backend.');
+          // Solo quitar el parámetro de edición (las notificaciones de actualización las maneja el backend)
+          navigate(`/session/${sessionId}`, { replace: true });
+        }
+        // CASO 3: Otros casos (aunque no debería ocurrir)
+        else {
+          navigate(`/session/${sessionId}`, { replace: true });
+        }
+      } 
+      // CASO 4: Creación de nueva sesión
+      else {
+        // Crear nueva sesión
+        const newSession = await createSession(formData as Omit<Session, 'id'>);
+        sessionId = newSession.id as number;
+        navigate(`/session/${sessionId}`);
+      }
+      
+      // Mostrar notificación de éxito
+      showSuccess(isExistingSession ? t('common.save_success') : t('common.create_success'));
     } catch (error) {
-      console.error('Error al guardar la sesión:', error);
-      alert('Error al guardar la sesión');
+      console.error("Error al guardar la sesión:", error);
     } finally {
       setLoading(false);
     }
@@ -473,6 +504,7 @@ const SessionDetailsPage: React.FC = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">
             {!isExistingSession ? t('sessions.create_session') : 
+             isClonedSession ? t('sessions.duplicate') : 
              isEditMode ? t('sessions.edit_session') : 
              t('sessions.session_details')}
           </h1>

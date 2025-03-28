@@ -820,17 +820,18 @@ const DashboardPage = () => {
 
   // Función para manejar la duplicación de sesiones
   const handleDuplicate = async (sessionId: number) => {
+    if (isDuplicating) return;
+    
+    setIsDuplicating(true);
     try {
-      setIsDuplicating(true);
-      
       // Llamar al servicio para duplicar la sesión
       const duplicatedSession = await duplicateSession(sessionId);
       
       // Mostrar notificación de éxito
       showNotification(t("sessions.duplicate_success"), "success");
       
-      // Navegar a la página de edición de la sesión duplicada con el parámetro edit=true
-      navigate(`/session/${duplicatedSession.id}?edit=true`);
+      // Navegar a la página de edición de la sesión duplicada con el parámetro cloned=true
+      navigate(`/session/${duplicatedSession.id}?cloned=true`);
     } catch (error) {
       console.error("Error al duplicar la sesión:", error);
       showNotification(t("sessions.duplicate_error"), "error");

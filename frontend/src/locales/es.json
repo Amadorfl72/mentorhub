@@ -91,7 +91,9 @@
     "interests_placeholder": "¿Qué temas te interesan?",
     "want_to_be_mentor": "Quiero ser mentor",
     "save": "Guardar Cambios",
-    "complete": "Completar Registro"
+    "complete": "Completar Registro",
+    "email_notifications": "Recibir Notificaciones por Email",
+    "email_notifications_description": "Recibir notificaciones sobre nuevas sesiones, actualizaciones y cancelaciones"
   },
   "profile": {
     "view_edit": "Ver/Editar Perfil",
@@ -115,6 +117,9 @@
     "unenrol": "Desuscribirse",
     "processing": "Procesando...",
     "creating": "Creando...",
+    "create": "Crear",
+    "create_success": "Creado correctamente",
+    "save_success": "Cambios guardados correctamente",
     "not_authorized": "No estás autorizado para editar esta sesión",
     "redirecting": "Redirigiendo al modo de visualización..."
   },
@@ -127,5 +132,41 @@
     },
     "switchToLight": "Cambiar a modo claro",
     "switchToDark": "Cambiar a modo oscuro"
+  },
+  "emails": {
+    "cancellation": {
+      "subject": "CANCELADO: {session_title}",
+      "title": "Aviso de Cancelación de Sesión",
+      "greeting": "Estimado/a {username},",
+      "notification": "Lamentamos informarte que la siguiente sesión ha sido cancelada:",
+      "session_title": "Título",
+      "description": "Descripción",
+      "mentor": "Mentor",
+      "date": "Fecha programada",
+      "apology": "Nos disculpamos por cualquier inconveniente que esto pueda causar.",
+      "alternative": "Por favor, consulta nuestra plataforma para sesiones alternativas que puedan interesarte.",
+      "button": "Explorar Sesiones",
+      "regards": "Saludos cordiales,",
+      "team": "El Equipo de MentorHub"
+    },
+    "update": {
+      "subject": "ACTUALIZACIÓN: {session_title}",
+      "title": "Actualización de Sesión",
+      "greeting": "Estimado/a {username},",
+      "notification": "Una sesión en la que estás inscrito/a ha sido actualizada:",
+      "change_notice": "Se han realizado los siguientes cambios:",
+      "session_title": "Título",
+      "description": "Descripción",
+      "date": "Fecha programada",
+      "attendees": "Máximo de asistentes",
+      "old_value": "Valor anterior",
+      "new_value": "Nuevo valor",
+      "unchanged": "Sin cambios",
+      "session_details": "Detalles actualizados de la sesión",
+      "button": "Ver Detalles de la Sesión",
+      "footer": "¡Esperamos contar con tu participación!",
+      "regards": "Saludos cordiales,",
+      "team": "El Equipo de MentorHub"
+    }
   }
 }

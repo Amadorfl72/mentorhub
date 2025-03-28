@@ -12,6 +12,7 @@ export interface Session {
   mentees?: User[];
   created_at?: string;
   updated_at?: string;
+  is_cloned?: boolean;
 }
 
 const API_URL = 'http://localhost:5001';
@@ -227,7 +228,7 @@ export const duplicateSession = async (sessionId: number): Promise<Session> => {
     }
     
     // 2. Crear un nuevo objeto de sesión sin ID, sin mentees y con título modificado
-    const duplicatedSession: Omit<Session, 'id'> = {
+    const duplicatedSession: Omit<Session, 'id'> & { send_notification: boolean } = {
       title: `${originalSession.title} - Copy`,
       description: originalSession.description,
       mentor_id: originalSession.mentor_id,
@@ -235,12 +236,26 @@ export const duplicateSession = async (sessionId: number): Promise<Session> => {
       max_attendees: originalSession.max_attendees,
       keywords: originalSession.keywords,
       mentees: [], // Sin mentees en la nueva sesión
+      send_notification: false, // No enviar notificaciones al duplicar
+      is_cloned: true
     };
     
     // 3. Crear la nueva sesión
-    return await createSession(duplicatedSession);
+    return await createSession(duplicatedSession as any);
   } catch (error) {
     console.error('Error al duplicar la sesión:', error);
+    throw error;
+  }
+};
+
+// Nueva función para enviar notificaciones de una sesión
+export const sendSessionNotifications = async (sessionId: number): Promise<any> => {
+  try {
+    return await fetchWithAuth(`/sessions/${sessionId}/send-notifications`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error('Error al enviar notificaciones de la sesión:', error);
     throw error;
   }
 }; 

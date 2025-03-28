@@ -1,6 +1,6 @@
 import jwt
 import datetime
-from flask import request, jsonify
+from flask import request, jsonify, g
 from functools import wraps
 from ..models.user import User
 import os
@@ -81,6 +81,35 @@ def login_required(f):
             return jsonify({"error": "Invalid or expired token", "details": str(e)}), 401
             
     return decorated_function
+
+def get_current_user():
+    """
+    Obtiene el usuario actual basado en el token de autenticación.
+    Debe usarse dentro de rutas protegidas con @login_required.
+    
+    Returns:
+        User: El objeto usuario actual
+        None: Si no se puede obtener el usuario
+    """
+    try:
+        # Obtenemos el user_id que se guarda en request en el decorador login_required
+        user_id = request.user_id
+        
+        if not user_id:
+            logger.error("No user_id found in request")
+            return None
+            
+        # Obtener el usuario de la base de datos
+        user = User.query.get(user_id)
+        
+        if not user:
+            logger.error(f"User with ID {user_id} not found")
+            return None
+            
+        return user
+    except Exception as e:
+        logger.error(f"Error getting current user: {str(e)}")
+        return None
 
 def admin_required(f):
     @wraps(f)

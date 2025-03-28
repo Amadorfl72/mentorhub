@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..extensions import db
 from ..models.user import User
-from ..utils.auth import login_required, admin_required
+from ..utils.auth import login_required, admin_required, get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,40 +71,57 @@ def update_user_admin_status(user_id):
 @user_bp.route('/api/users/profile', methods=['PUT'])
 @login_required
 def update_profile():
-    try:
-        data = request.json
-        logger.debug(f"Received profile update data: {data}")
-
-        # Obtener el usuario usando el ID del token
-        current_user = User.query.get(request.user_id)
-        if not current_user:
-            return jsonify({"error": "User not found"}), 404
-
-        # Actualizar campos
-        if 'name' in data:
-            current_user.username = data['name']
-        if 'skills' in data:
-            current_user.skills = data['skills']
-        if 'interests' in data:
-            current_user.interests = data['interests']
-        if 'photoUrl' in data:
-            current_user.photoUrl = data['photoUrl']
-        if 'role' in data:
-            current_user.role = data['role']
-
-        db.session.commit()
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
         
-        return jsonify({
-            "id": current_user.id,
-            "email": current_user.email,
-            "name": current_user.username,
-            "photoUrl": current_user.photoUrl,
-            "role": current_user.role,
-            "skills": current_user.skills,
-            "interests": current_user.interests
-        })
+    data = request.json
+    
+    # Campos que se pueden actualizar
+    if 'name' in data:
+        current_user.username = data['name']
+    if 'email' in data:
+        current_user.email = data['email']
+    if 'photoUrl' in data:
+        current_user.photoUrl = data['photoUrl']
+    if 'skills' in data:
+        current_user.skills = data['skills']
+    if 'interests' in data:
+        current_user.interests = data['interests']
+    if 'role' in data:
+        current_user.role = data['role']
+    if 'email_notifications' in data:
+        current_user.email_notifications = data['email_notifications']
+    if 'language' in data:
+        current_user.language = data['language']
+        
+    db.session.commit()
+    
+    return jsonify(current_user.to_dict())
 
-    except Exception as e:
-        logger.error(f"Error updating profile: {str(e)}")
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500 
+@user_bp.route('/api/users/language', methods=['POST'])
+@login_required
+def update_language():
+    """Actualiza el idioma preferido del usuario para notificaciones"""
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+        
+    data = request.json
+    language = data.get('language')
+    
+    # Validar el idioma
+    if not language or language not in ['en', 'es', 'fr']:
+        return jsonify({"error": "Idioma no válido"}), 400
+    
+    # Actualizar el idioma
+    current_user.language = language
+    db.session.commit()
+    
+    logger.info(f"Usuario {current_user.username} ha actualizado su idioma a {language}")
+    
+    return jsonify({
+        "success": True,
+        "message": "Idioma actualizado correctamente",
+        "language": language
+    }) 

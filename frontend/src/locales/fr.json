@@ -85,7 +85,9 @@
     "interests_placeholder": "Quels sujets vous intéressent ?",
     "want_to_be_mentor": "Je veux être mentor",
     "save": "Enregistrer",
-    "complete": "Terminer l'Inscription"
+    "complete": "Terminer l'Inscription",
+    "email_notifications": "Recevoir des Notifications par Email",
+    "email_notifications_description": "Recevoir des notifications sur les nouvelles sessions, mises à jour et annulations"
   },
   "profile": {
     "view_edit": "Voir/Modifier Profil",
@@ -108,7 +110,10 @@
     "enrol": "S'inscrire",
     "unenrol": "Se désinscrire",
     "processing": "Traitement en cours...",
-    "creating": "Création...",
+    "creating": "Création en cours...",
+    "create": "Créer",
+    "create_success": "Créé avec succès",
+    "save_success": "Modifications enregistrées avec succès",
     "not_authorized": "Vous n'êtes pas autorisé à modifier cette session",
     "redirecting": "Redirection vers le mode visualisation..."
   },
@@ -121,5 +126,41 @@
     },
     "switchToLight": "Passer au mode clair",
     "switchToDark": "Passer au mode sombre"
+  },
+  "emails": {
+    "cancellation": {
+      "subject": "ANNULÉ: {session_title}",
+      "title": "Avis d'Annulation de Session",
+      "greeting": "Cher/Chère {username},",
+      "notification": "Nous regrettons de vous informer que la session suivante a été annulée:",
+      "session_title": "Titre",
+      "description": "Description",
+      "mentor": "Mentor",
+      "date": "Date prévue",
+      "apology": "Nous nous excusons pour tout inconvénient que cela pourrait causer.",
+      "alternative": "Veuillez consulter notre plateforme pour des sessions alternatives qui pourraient vous intéresser.",
+      "button": "Parcourir les Sessions",
+      "regards": "Cordialement,",
+      "team": "L'équipe MentorHub"
+    },
+    "update": {
+      "subject": "MISE À JOUR: {session_title}",
+      "title": "Mise à Jour de Session",
+      "greeting": "Cher/Chère {username},",
+      "notification": "Une session à laquelle vous êtes inscrit a été mise à jour:",
+      "change_notice": "Les modifications suivantes ont été apportées:",
+      "session_title": "Titre",
+      "description": "Description",
+      "date": "Date prévue",
+      "attendees": "Maximum de participants",
+      "old_value": "Ancienne valeur",
+      "new_value": "Nouvelle valeur",
+      "unchanged": "Inchangé",
+      "session_details": "Détails mis à jour de la session",
+      "button": "Voir les Détails de la Session",
+      "footer": "Nous espérons vous voir à cette session!",
+      "regards": "Cordialement,",
+      "team": "L'équipe MentorHub"
+    }
   }
 }
